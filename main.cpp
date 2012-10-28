@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
     AVFormatContext *pFormatCtx=NULL;
 
     // Open video file
-    char* filename_in = "star.avi";
+    char* filename_in = "test.mkv";
 
     //Look header info
     if(avformat_open_input(&pFormatCtx, filename_in, NULL, NULL)!=0)
@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
              //Scale the raw data/convert it to our video buffer...
               sws_scale(pSWSContext, pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);
             // Save the frame to disk
-            if(++i<=5)
+            if(++i<=30)
               SaveFrame(pFrameRGB, pCodecCtx->width,
                         pCodecCtx->height, i);
         }
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
     // Close the video file
     av_close_input_file(pFormatCtx);
 
-    return 0;
+    return i;
 
 
     return a.exec();
