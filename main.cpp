@@ -1,4 +1,8 @@
 #include <QtGui/QApplication>
+#include<QtGui/QPainter>
+#include<QtGui/QLabel>
+#include<QtGui/QPushButton>
+#include<QtGui/QPixmap>
 #include "mainwindow.h"
 #ifndef INT64_C
 #define INT64_C(c) (c ## LL)
@@ -17,7 +21,14 @@ extern "C" {
 #include <version.h>        //swscale
 }
 
+#include <opencv/cv.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <iostream>
 
+using namespace cv;
+using namespace std;
 
 void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
   FILE *pFile;
@@ -48,6 +59,21 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     MainWindow w;
     w.show();
+    w.resize(100,80);
+    /*QWidget* wgt=new QWidget(&w);
+    wgt->resize(400,400);
+    wgt->show();
+    QPainter* painter = new QPainter();
+    painter->begin(wgt);*/
+QImage* img=new QImage("frame1.ppm");
+/*
+//QLabel l(&w,0)
+QLabel myLab(&w,0);
+    myLab.setPixmap(QPixmap::fromImage(img));
+    myLab.resize(900,700);
+    myLab.show();
+painter->drawImage(0,0,img);
+painter->end();*/
 
     char* filename_out = "log_.log";
     FILE * out;
@@ -64,11 +90,11 @@ int main(int argc, char *argv[])
     AVFormatContext *pFormatCtx=NULL;
 
     // Open video file
-    char* filename_in = "test.mkv";
+    char* filename_in = "face.mp4";
 
     //Look header info
     if(avformat_open_input(&pFormatCtx, filename_in, NULL, NULL)!=0)
-         {printf("Couldn't open file vidmag.mov \n");return -1;} // Couldn't open file
+         {printf("Couldn't open video file  \n");return -1;} // Couldn't open file
 
     // Retrieve stream information
     if(avformat_find_stream_info(pFormatCtx,NULL)<0)
@@ -141,6 +167,9 @@ int main(int argc, char *argv[])
     int frameFinished;
     AVPacket packet;
 
+
+    QImage* img1;
+
     i=0;
     while(av_read_frame(pFormatCtx, &packet)>=0)
     {
@@ -155,6 +184,7 @@ int main(int argc, char *argv[])
         if(frameFinished)
         {
         // Convert the image from its native format to RGB
+
            /* img_convert((AVPicture *)pFrameRGB, PIX_FMT_RGB24,
                 (AVPicture*)pFrame, pCodecCtx->pix_fmt,
                             pCodecCtx->width, pCodecCtx->height);
@@ -163,17 +193,104 @@ int main(int argc, char *argv[])
 
 
              //Scale the raw data/convert it to our video buffer...
-              sws_scale(pSWSContext, pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);
+             sws_scale(pSWSContext, pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);
             // Save the frame to disk
-            if(++i<=30)
+            if(++i<=1)
+            {
+                unsigned char* ch;//=new unsigned char();//=(int*)pFrameRGB->data[100];
+                //int* ch=new int();
+                ch=pFrameRGB->data[0];
+                printf("%c\n",*ch);
+                char* imageOutName = "frame1_mat.ppm";
+                Mat* image_mat=new Mat();//(pCodecCtx->height, pCodecCtx->width,pFrameRGB->linesize[0]*pCodecCtx->height, ch);
+                image_mat->create(pCodecCtx->height,pCodecCtx->width,CV_8UC(3));
+                for(int row=0; row<pCodecCtx->height;row++)
+                {
+                    for(int col=0; col<pCodecCtx->width; col++)
+                    {
+                        image_mat->at<Vec3b>(row,col)[0]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+2];
+                        image_mat->at<Vec3b>(row,col)[1]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+1];
+                        image_mat->at<Vec3b>(row,col)[2]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+0];
+                    }
+
+                }
+
+              imwrite( imageOutName, *image_mat );
               SaveFrame(pFrameRGB, pCodecCtx->width,
                         pCodecCtx->height, i);
+  /*               if(i==1)
+                 {
+
+                     //====================================
+
+                     //if(!pFrameRGB->data) {
+                     int imageWidth = pCodecCtx->width;
+                     int imageHeight = pCodecCtx->height;
+                     uchar* imageData = new uchar[4*imageWidth*imageHeight];
+                     for(int i = 0; i < imageWidth*imageHeight; i++) {
+                     imageData[i*4+3] = 0xFF;
+                     }
+
+
+                     int pixels = imageWidth * imageHeight;
+                     uchar* src = (uchar*)(&pFrameRGB->data[0]);
+                     uchar* srcEnd = src + (3*pixels);
+                     uchar* dest = imageData;
+*/
+                     //do {
+                     //memcpy(dest, src, 3);
+                     /*int i=0,j=0;
+                     do{
+                     (*imageData)[i]=(*pFrameRGB->data)[j];
+                     i++;j++;
+                     *dest[i]=*src[j];
+                     i++;j++;
+                     *dest[i]=*src[j];
+                     i++;j++;i++;
+                     while(j<pixels*3)
+                     //dest += 4;
+                     //src += 3;*/
+                     //} while(src < srcEnd);
+
+                     //img1=new QImage(imageData,pCodecCtx->width,pCodecCtx->height,QImage::Format_RGB32);
+            /*         printf("done\n");
+                     printf("wight=%d,height=%d\n",pCodecCtx->height,pFrameRGB->linesize);
+                    // }
+
+                     //=====================================
+                }*/
+            }
         }
       }
 
       // Free the packet that was allocated by av_read_frame
       av_free_packet(&packet);
     }
+    printf("Hello1!\n");
+    QPushButton B1("Stop",&w);
+    QObject::connect(&B1,SIGNAL(clicked()),&a,SLOT(quit()));
+    B1.show();
+
+    //if(!img1)
+    //{
+    /*    printf("ololo\n");
+    QLabel myLab(&w,0);
+    myLab.move(50,50);
+    myLab.setPixmap(QPixmap::fromImage(*img1));
+    myLab.resize(900,700);
+    myLab.show();*/
+    //}
+    //img1->save("test.jpg","JPG");
+    //QPainter painter(&w);
+    //w->update();
+    //QPainter* painter=new QPainter(&w);
+    //painter->begin(&w);
+    //w->update();
+    //painter->drawImage(0,0,*img1);
+    //w->update();
+    //painter->end();
+    //sleep(60);
+
     // Free the RGB image
     av_free(buffer);
     av_free(pFrameRGB);
@@ -186,9 +303,9 @@ int main(int argc, char *argv[])
     // Close the video file
     av_close_input_file(pFormatCtx);
 
-    return i;
+    //return i;
 
-
+printf("end\n");
     return a.exec();
 }
 
