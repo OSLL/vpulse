@@ -96,6 +96,8 @@ int VideoReader::ReadFrames(const char* videofilename_in, int pyramid_level)
      avpicture_fill((AVPicture *)pFrameRGB, buffer, PIX_FMT_RGB24,
                      pCodecCtx->width, pCodecCtx->height);
 
+     //this->frameHeight=pCodecCtx->height;
+     //this->frameWidth=pCodecCtx->width;
 
      SwsContext *pSWSContext = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height, PIX_FMT_RGB24, SWS_BILINEAR, 0, 0, 0);
 
@@ -125,8 +127,8 @@ int VideoReader::ReadFrames(const char* videofilename_in, int pyramid_level)
                  //Mat* image_mat=new Mat();//(pCodecCtx->height, pCodecCtx->width,pFrameRGB->linesize[0]*pCodecCtx->height, ch);
                  this->frames[i-1]=new Mat();
                  Mat*image_mat =this->frames[i-1];
-                 image_mat->create(pCodecCtx->height,pCodecCtx->width,CV_8UC(3));
-
+                 //image_mat->create(pCodecCtx->height,pCodecCtx->width,CV_8UC(3));
+                image_mat->create(pCodecCtx->height,pCodecCtx->width,CV_8UC(3));
                  for(int row=0; row<pCodecCtx->height;row++)
                  {
                      for(int col=0; col<pCodecCtx->width; col++)
@@ -134,6 +136,12 @@ int VideoReader::ReadFrames(const char* videofilename_in, int pyramid_level)
                          image_mat->at<Vec3b>(row,col)[0]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+2];
                          image_mat->at<Vec3b>(row,col)[1]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+1];
                          image_mat->at<Vec3b>(row,col)[2]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+0];
+                        // if((row<5)&&(col<5)&&(i<5))
+                        // {
+                        //     printf("image_mat->at<Vec3b>(row,col)[0]=%uc\n",image_mat->at<Vec3b>(row,col)[0]);
+                        //     printf("image_mat->at<Vec3b>(row,col)[1]=%uc\n",image_mat->at<Vec3b>(row,col)[1]);
+                        //     printf("image_mat->at<Vec3b>(row,col)[2]=%uc\n",image_mat->at<Vec3b>(row,col)[2]);
+                        // }
                      }
 
                  }
@@ -157,8 +165,11 @@ int VideoReader::ReadFrames(const char* videofilename_in, int pyramid_level)
        // Free the packet that was allocated by av_read_frame
        av_free_packet(&packet);
      }
-     this->NumberOfFrames=i;
-     printf("numberOfFrames=%d\n",i);
+
+     this->frameHeight=this->frames[0]->rows;
+     this->frameWidth=this->frames[0]->cols;
+     this->NumberOfFrames=i-6; //throw out 6 last frames
+     printf("numberOfFrames(-6)=%d\n",this->NumberOfFrames);
      av_free(buffer);
      av_free(pFrameRGB);
      // Free the YUV frame
@@ -193,4 +204,25 @@ int VideoReader::PrintFrames(void)
         }
     }
 
+}
+
+
+int VideoReader::getFrameHeight(void)
+{
+    return(this->frameHeight);
+}
+
+int VideoReader::getFrameWidth(void)
+{
+    return(this->frameWidth);
+}
+
+int VideoReader::getNumberOfFrames(void)
+{
+    return(this->NumberOfFrames);
+}
+
+Mat** VideoReader::getFrames(void)
+{
+    return(this->frames);
 }

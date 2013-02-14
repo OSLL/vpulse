@@ -28,6 +28,7 @@ extern "C" {
 #include <iostream>
 
 const int FRAMES_MAX =1000;
-
+typedef float transRgbYiqMatr[9];
+const transRgbYiqMatr rgb2yiqCoef={0.299, 0.587, 0.144, 0.596, -0.274, -0.322, 0.211, -0.522, 0.311};
 
 #endif // CONF_H
