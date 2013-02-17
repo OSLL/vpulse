@@ -18,6 +18,7 @@ private:
     void rgb2yiq(void);
     void normalize(void);
     int* createFreqMask(float fLow, float fHight);
+    void copyVector(double* src, double* dst, int len);
 
 public:
     processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, int sRate_in, Mat** Frames);

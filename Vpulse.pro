@@ -103,3 +103,10 @@ INCLUDEPATH+=\usr\local\lib\include\
 
 INCLUDEPATH += $$PWD/../../../usr/local/include
 DEPENDPATH += $$PWD/../../../usr/local/include
+
+
+
+unix:!macx:!symbian: LIBS += -L$$PWD/../../../../usr/local/lib/ -lfftw3
+
+INCLUDEPATH += $$PWD/../../../../usr/local/include
+DEPENDPATH += $$PWD/../../../../usr/local/include

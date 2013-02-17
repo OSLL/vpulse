@@ -126,10 +126,10 @@ int* processor::createFreqMask(float fLow, float fHight)
     for(int i=0; i<this->NumberOfFrames;i++)
     {
         mask[i]=(float)i/(float)NumberOfFrames*samplingRate;
-        printf("mask[%d]=%f\n",i,mask[i]);
+        //printf("mask[%d]=%f\n",i,mask[i]);
         if((mask[i]>fLow)&&(mask[i]<fHight))
         {
-            printf("mask[%d]=%f \t > \t fLow= %f && \t < \t fHight= %f \n",i,mask[i],fLow, fHight);
+            //printf("mask[%d]=%f \t > \t fLow= %f && \t < \t fHight= %f \n",i,mask[i],fLow, fHight);
             indexes[j]=i;
             j++;
         }
@@ -142,14 +142,37 @@ int* processor::createFreqMask(float fLow, float fHight)
     return(indexes);
 }
 
+void processor::copyVector(double* src, double* dst, int len)
+{
+    for(int i=0; i< len; i++)
+    {
+        dst[i]=src[i];
+    }
+}
+
 void processor::work(float fLow, float fHight)
 {
     this->normalize();
     this->rgb2yiq();
     printf("flow= %f, fHight= %f \n", fLow, fHight);
     int* mask=createFreqMask(fLow,fHight);
-    const char* filename_mask = "fr_mask.log";
-    PrintDataInt(mask,this->NumberOfFrames+1,filename_mask);
+
+    //const char* filename_mask = "fr_mask.log";
+    //PrintDataInt(mask,this->NumberOfFrames+1,filename_mask);
+
+    fftw_complex* out;
+    double* in;
+
+    //fftw_plan p;
+    in = (double*)malloc(sizeof(double)*this->NumberOfFrames);
+    out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*this->NumberOfFrames);
+    fftw_plan p = fftw_plan_dft_r2c_1d(this->NumberOfFrames,in,out,FFTW_MEASURE);
+
+    this->copyVector((double*)&this->AllFrames[0],in,this->NumberOfFrames);
+    fftw_execute(p);
+    fftw_destroy_plan(p);
+    fftw_free(out);
+    free(in);
 }
 
 float* processor::getAllFrames(void)

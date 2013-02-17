@@ -19,6 +19,9 @@ extern "C" {
 #include <avformat.h>
 #include <swscale.h>
 #include <version.h>        //swscale
+
+#include "fftw3.h"
+//#include "fft"
 }
 
 #include <opencv/cv.h>
