@@ -10,26 +10,27 @@ private:
     int NumberOfFrames;
     int frameHeight;
     int frameWidth;
-    float samplingRate;
+    int samplingRate;
 
-    float* AllFrames;       //data
+    double* AllFrames;       //data
 
-    void FramesToVector(Mat** src, float* dst);
+    void FramesToVector(Mat** src, double* dst);
     void rgb2yiq(void);
-    void normalize(void);
-    int* createFreqMask(float fLow, float fHight);
-    void copyVector(double* src, double* dst, int len);
+    void normalize(double* src, long len, double factor);
+    int* createFreqMask(double fLow, double fHight);
+    void copyVector(double* src, double* dst, long len);
+    void copyFFTW_cpx(fftw_complex* src, fftw_complex* dst, long len);
 
 public:
     processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, int sRate_in, Mat** Frames);
     ~processor();
-    void work(float fLow, float fHight);
-    float* getAllFrames(void);
+    void work(double fLow, double fHight);
+    double* getAllFrames(void);
     int getFrH(void);
     int getFrW(void);
     int getNFr(void);
     //tmp==================
-    void PrintData(float* src, long len, const char* filename);
+    void PrintData(double* src, long len, const char* filename);
     //=====================
 };
 

@@ -2,7 +2,7 @@
 using namespace std;
 
 //temporary_functions======================================
-void processor::PrintData(float* src, long len, const char* filename)
+void processor::PrintData(double* src, long len, const char* filename)
 {
     //long len = this->NumberOfFrames*this->frameHeight*this->frameWidth*3;
     int currNumofFr=0;
@@ -58,6 +58,40 @@ void PrintDataInt(int* src, long len, const char* filename)
         }
         fclose(stream);
 }
+//========================================================
+void PrintDataCmx(fftw_complex* src, long len, const char* filename)
+{
+        FILE * stream;
+                if ((stream=fopen(filename, "w")) != 0)
+        {
+
+            for(long curr_id1 = 0; curr_id1 <= len-1; curr_id1++)
+            {
+
+                fprintf(stream, "%ld. \t| re = %lf, \t| \t im = %lf",curr_id1, src[curr_id1][0],src[curr_id1][0]);
+                fputc('\n',stream);
+
+            };
+        }
+        fclose(stream);
+}
+//=========================================================
+void PrintDataDb(double* src, long len, const char* filename)
+{
+        FILE * stream;
+                if ((stream=fopen(filename, "w")) != 0)
+        {
+
+            for(long curr_id1 = 0; curr_id1 <= len-1; curr_id1++)
+            {
+
+                fprintf(stream, "%ld. \t %lf",curr_id1, src[curr_id1]);
+                fputc('\n',stream);
+
+            };
+        }
+        fclose(stream);
+}
 //=========================================================
 
 
@@ -68,7 +102,7 @@ processor::processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_i
     samplingRate(sRate_in)
 {
     long LengthAll=this->NumberOfFrames*this->frameHeight*this->frameWidth*3;
-    this->AllFrames=(float*)malloc(LengthAll*sizeof(float));
+    this->AllFrames=(double*)malloc(LengthAll*sizeof(double));
     this->FramesToVector(Frames,this->AllFrames);
 }
 
@@ -77,7 +111,7 @@ processor::~processor()
     free(this->AllFrames);
 }
 
-void processor::FramesToVector(Mat** src, float* dst)
+void processor::FramesToVector(Mat** src, double* dst)
 {
 
     int rowD= NumberOfFrames*frameHeight;
@@ -110,22 +144,22 @@ void processor::rgb2yiq(void)
 
 }
 
-void processor::normalize(void)
+void processor::normalize(double* src, long len, double factor)
 {
-    for(int i=0; i<this->NumberOfFrames*this->frameHeight*this->frameWidth*3; i++)
+    for(long i=0; i<len; i++)
     {
-        this->AllFrames[i]=this->AllFrames[i]/255.0;
+        src[i]=src[i]/factor;
     }
 }
 
-int* processor::createFreqMask(float fLow, float fHight)
+int* processor::createFreqMask(double fLow, double fHight)
 {
     int* indexes=(int*)malloc((this->NumberOfFrames+1)*sizeof(int));
     int j=0;
-    float* mask=(float*)malloc(this->NumberOfFrames*sizeof(float));
+    double* mask=(double*)malloc(this->NumberOfFrames*sizeof(double));
     for(int i=0; i<this->NumberOfFrames;i++)
     {
-        mask[i]=(float)i/(float)NumberOfFrames*samplingRate;
+        mask[i]=(double)i/(double)NumberOfFrames*(double)samplingRate;
         //printf("mask[%d]=%f\n",i,mask[i]);
         if((mask[i]>fLow)&&(mask[i]<fHight))
         {
@@ -142,17 +176,25 @@ int* processor::createFreqMask(float fLow, float fHight)
     return(indexes);
 }
 
-void processor::copyVector(double* src, double* dst, int len)
+void processor::copyVector(double* src, double* dst, long len)
 {
-    for(int i=0; i< len; i++)
+    for(long i=0; i< len; i++)
     {
         dst[i]=src[i];
     }
 }
-
-void processor::work(float fLow, float fHight)
+void processor::copyFFTW_cpx(fftw_complex* src, fftw_complex* dst, long len)
 {
-    this->normalize();
+    for(long i=0; i< len; i++)
+    {
+        dst[i][0]=src[i][0];
+        dst[i][1]=src[i][1];
+    }
+}
+
+void processor::work(double fLow, double fHight)
+{
+    this->normalize((double*)this->AllFrames,(long) this->NumberOfFrames*this->frameHeight*this->frameWidth*3,255.0);
     this->rgb2yiq();
     printf("flow= %f, fHight= %f \n", fLow, fHight);
     int* mask=createFreqMask(fLow,fHight);
@@ -170,12 +212,27 @@ void processor::work(float fLow, float fHight)
 
     this->copyVector((double*)&this->AllFrames[0],in,this->NumberOfFrames);
     fftw_execute(p);
+    char* f_name_fftw_test = "fftw_test.log";
+    char* f_name_fft_in = "fft_in1.log";
+    PrintDataDb(in,this->NumberOfFrames,f_name_fft_in);
+    PrintDataCmx(out,this->NumberOfFrames,f_name_fftw_test);
+    //===ifft====
+    fftw_complex* in_ifft= (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(this->NumberOfFrames/2+1));
+    double* out_ifft = (double*)malloc(sizeof(double)*this->NumberOfFrames);
+    fftw_plan p_ifft = fftw_plan_dft_c2r_1d(this->NumberOfFrames/2+1,in_ifft,out_ifft,FFTW_MEASURE);
+    this->copyFFTW_cpx(out,in_ifft,this->NumberOfFrames/2+1);
+    fftw_execute(p_ifft);
+    char* f_name_fft_in2 = "fft_in2.log";
+    this->normalize(out_ifft, (long)this->NumberOfFrames,(double)this->NumberOfFrames);
+    PrintDataDb(out_ifft,this->NumberOfFrames,f_name_fft_in2);
+
+    //===========
     fftw_destroy_plan(p);
     fftw_free(out);
     free(in);
 }
 
-float* processor::getAllFrames(void)
+double* processor::getAllFrames(void)
 {
     return(this->AllFrames);
 }
