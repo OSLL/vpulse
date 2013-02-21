@@ -15,16 +15,21 @@ private:
     double* AllFrames;       //data
 
     void FramesToVector(Mat** src, double* dst);
+
     void rgb2yiq(void);
+    void yiq2rgb(void);
     void normalize(double* src, long len, double factor);
     int* createFreqMask(double fLow, double fHight);
     void copyVector(double* src, double* dst, long len);
     void copyFFTW_cpx(fftw_complex* src, fftw_complex* dst, long len);
+    void applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long len);
+    void sumVector(double* src1, double *src2, double* dst, long len);
 
 public:
     processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, int sRate_in, Mat** Frames);
     ~processor();
-    void work(double fLow, double fHight);
+    void work(double fLow, double fHight, double ampFactor);
+    void VectorToFrames(double* src, Mat** dst);
     double* getAllFrames(void);
     int getFrH(void);
     int getFrW(void);

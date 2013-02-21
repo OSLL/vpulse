@@ -132,6 +132,26 @@ void processor::FramesToVector(Mat** src, double* dst)
     }
 }
 
+void processor::VectorToFrames(double* src, Mat** dst)
+{
+    int rowD= NumberOfFrames*frameHeight;
+    int colD=rowD*frameWidth;
+
+    for(int ch = 2; ch >= 0; ch--)
+    {
+        for(int col = 0; col < this->frameWidth; col++)
+        {
+            for(int row = 0; row < this->frameHeight; row++)
+            {
+                for(int t = 0; t < this->NumberOfFrames; t++)
+                {
+                    dst[t]->at<Vec3b>(row,col).val[ch] = src[ch*colD+col*rowD+row*NumberOfFrames+t];
+                }
+            }
+        }
+    }
+}
+
 void processor::rgb2yiq(void)
 {
     long chD=this->NumberOfFrames*this->frameHeight*this->frameWidth;
@@ -142,6 +162,16 @@ void processor::rgb2yiq(void)
         AllFrames[ch+chD*2] = AllFrames[ch]*rgb2yiqCoef[6] + AllFrames[ch+chD]*rgb2yiqCoef[7] + AllFrames[ch+chD*2]*rgb2yiqCoef[8];
     }
 
+}
+void processor::yiq2rgb(void)
+{
+    long chD=this->NumberOfFrames*this->frameHeight*this->frameWidth;
+    for(long ch = 0; ch <chD; ch++)
+    {
+        AllFrames[ch] = AllFrames[ch]*yiq2rgbCoef[0] + AllFrames[ch+chD]*yiq2rgbCoef[1] + AllFrames[ch+chD*2]*yiq2rgbCoef[2];
+        AllFrames[ch+chD] = AllFrames[ch]*yiq2rgbCoef[3] + AllFrames[ch+chD]*yiq2rgbCoef[4] + AllFrames[ch+chD*2]*yiq2rgbCoef[5];
+        AllFrames[ch+chD*2] = AllFrames[ch]*yiq2rgbCoef[6] + AllFrames[ch+chD]*yiq2rgbCoef[7] + AllFrames[ch+chD*2]*yiq2rgbCoef[8];
+    }
 }
 
 void processor::normalize(double* src, long len, double factor)
@@ -192,7 +222,36 @@ void processor::copyFFTW_cpx(fftw_complex* src, fftw_complex* dst, long len)
     }
 }
 
-void processor::work(double fLow, double fHight)
+void processor::applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long len)
+{
+    int k=0;
+    for(int i=0; i<len; i++)
+    {
+        if(i==mask[k])
+        {
+            dst[i][0]=src[i][0];
+            dst[i][1]=src[i][1];
+            k++;
+        }
+        else
+        {
+            dst[i][0]=0.0;
+            dst[i][1]=0.0;
+        }
+    }
+    //dst[9][0]=src[9][0];
+    //dst[9][1]=src[9][1];
+}
+
+void processor::sumVector(double* src1, double *src2, double* dst, long len)
+{
+    for(int i=0; i<len; i++)
+    {
+        dst[i]=src1[i]+src2[i];
+    }
+}
+
+void processor::work(double fLow, double fHight, double ampFactor)
 {
     this->normalize((double*)this->AllFrames,(long) this->NumberOfFrames*this->frameHeight*this->frameWidth*3,255.0);
     this->rgb2yiq();
@@ -202,34 +261,49 @@ void processor::work(double fLow, double fHight)
     //const char* filename_mask = "fr_mask.log";
     //PrintDataInt(mask,this->NumberOfFrames+1,filename_mask);
 
-    fftw_complex* out;
-    double* in;
+    //fft_header
+    fftw_complex* out_fft;
+    double* in_fft;
+    in_fft = (double*)malloc(sizeof(double)*this->NumberOfFrames);
+    out_fft = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*this->NumberOfFrames);
+    fftw_plan p = fftw_plan_dft_r2c_1d(this->NumberOfFrames,in_fft,out_fft,FFTW_MEASURE);
 
-    //fftw_plan p;
-    in = (double*)malloc(sizeof(double)*this->NumberOfFrames);
-    out = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*this->NumberOfFrames);
-    fftw_plan p = fftw_plan_dft_r2c_1d(this->NumberOfFrames,in,out,FFTW_MEASURE);
-
-    this->copyVector((double*)&this->AllFrames[0],in,this->NumberOfFrames);
-    fftw_execute(p);
-    char* f_name_fftw_test = "fftw_test.log";
-    char* f_name_fft_in = "fft_in1.log";
-    PrintDataDb(in,this->NumberOfFrames,f_name_fft_in);
-    PrintDataCmx(out,this->NumberOfFrames,f_name_fftw_test);
-    //===ifft====
-    fftw_complex* in_ifft= (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(this->NumberOfFrames/2+1));
+    //ifft_header
+    fftw_complex* in_ifft= (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(this->NumberOfFrames));
     double* out_ifft = (double*)malloc(sizeof(double)*this->NumberOfFrames);
-    fftw_plan p_ifft = fftw_plan_dft_c2r_1d(this->NumberOfFrames/2+1,in_ifft,out_ifft,FFTW_MEASURE);
-    this->copyFFTW_cpx(out,in_ifft,this->NumberOfFrames/2+1);
-    fftw_execute(p_ifft);
-    char* f_name_fft_in2 = "fft_in2.log";
-    this->normalize(out_ifft, (long)this->NumberOfFrames,(double)this->NumberOfFrames);
-    PrintDataDb(out_ifft,this->NumberOfFrames,f_name_fft_in2);
+    fftw_plan p_ifft = fftw_plan_dft_c2r_1d(this->NumberOfFrames,in_ifft,out_ifft,FFTW_MEASURE);
 
+    for(int i=0; i<this->frameHeight*this->frameWidth*3; i++)
+    {
+        //fft:compute
+        this->copyVector((double*)&this->AllFrames[i*this->NumberOfFrames],in_fft,this->NumberOfFrames);
+        fftw_execute(p);
+
+        //char* f_name_fftw_test = "fftw_test.log";
+        //char* f_name_fft_in = "fft_in1.log";
+        //PrintDataDb(in_fft,this->NumberOfFrames,f_name_fft_in);
+        //PrintDataCmx(out_fft,this->NumberOfFrames,f_name_fftw_test);
+
+        //ifft:compute
+        this->applyMask(out_fft,in_ifft,mask,this->NumberOfFrames/2+1);
+        fftw_execute(p_ifft);
+        this->normalize(out_ifft, (long)this->NumberOfFrames,(double)this->NumberOfFrames/ampFactor);
+        this->sumVector(&this->AllFrames[i*this->NumberOfFrames],out_ifft,&this->AllFrames[i*this->NumberOfFrames],(long)this->NumberOfFrames);
+
+        //char* f_name_fft_in2 = "fft_in2.log";
+        //PrintDataDb(out_ifft,this->NumberOfFrames,f_name_fft_in2);
+    }
     //===========
     fftw_destroy_plan(p);
-    fftw_free(out);
-    free(in);
+    fftw_destroy_plan(p_ifft);
+    fftw_free(out_fft);
+    fftw_free(in_ifft);
+    free(in_fft);
+    free(out_ifft);
+
+
+    this->yiq2rgb();
+    this->normalize((double*)this->AllFrames,(long) this->NumberOfFrames*this->frameHeight*this->frameWidth*3,(double)1.0/255.0);
 }
 
 double* processor::getAllFrames(void)

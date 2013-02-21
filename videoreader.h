@@ -15,6 +15,7 @@ private:
 public:
 
     int ReadFrames(const char* videofilename_in, int pyramid_level);
+    int ChangePyramidLevel(int pyramid_level);
     int PrintFrames(void);
 
     int getFrameHeight(void);

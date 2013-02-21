@@ -197,15 +197,29 @@ int VideoReader::PrintFrames(void)
 
         for(int i=0; i<NumberOfFrames; i++)
         {
-            if((i<10)||(i>NumberOfFrames-10)){              //FIXME
+            //if((i<10)||(i>NumberOfFrames-10)){              //FIXME
             sprintf(frame_filename, "frame%d.ppm", i);
             imwrite(frame_filename, *(this->frames[i]));
-            }
+            //}
         }
     }
 
 }
 
+int VideoReader::ChangePyramidLevel(int pyramid_level)
+{
+    if(pyramid_level>=1)
+    {
+        for(int NofFr = 0; NofFr < this->NumberOfFrames; NofFr++)
+        {
+            Mat* image_mat=this->frames[NofFr];
+            for(int lvl=1; lvl<=pyramid_level;lvl++)
+            {
+                pyrUp(*image_mat, *image_mat, Size(image_mat->cols*2, image_mat->rows*2));
+            }
+        }
+    }
+}
 
 int VideoReader::getFrameHeight(void)
 {

@@ -33,5 +33,5 @@ extern "C" {
 const int FRAMES_MAX =1000;
 typedef float transRgbYiqMatr[9];
 const transRgbYiqMatr rgb2yiqCoef={0.299, 0.587, 0.144, 0.596, -0.274, -0.322, 0.211, -0.522, 0.311};
-
+const transRgbYiqMatr yiq2rgbCoef={1.000, 0.956, 0.621, 1.000, -0.272, -0.647, 1.000, -1.106, 1.703};
 #endif // CONF_H
