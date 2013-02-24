@@ -126,9 +126,12 @@ int VideoReader::ReadFrames(const char* videofilename_in, int pyramid_level)
                  char* imageDownName = "frame1_down_new.ppm";
                  //Mat* image_mat=new Mat();//(pCodecCtx->height, pCodecCtx->width,pFrameRGB->linesize[0]*pCodecCtx->height, ch);
                  this->frames[i-1]=new Mat();
+                 this->blured_frames[i-1]= new Mat();
                  Mat*image_mat =this->frames[i-1];
+                 Mat*image_blured = this->blured_frames[i-1];
                  //image_mat->create(pCodecCtx->height,pCodecCtx->width,CV_8UC(3));
                 image_mat->create(pCodecCtx->height,pCodecCtx->width,CV_8UC(3));
+                image_blured->create(pCodecCtx->height,pCodecCtx->width,CV_8UC(3));
                  for(int row=0; row<pCodecCtx->height;row++)
                  {
                      for(int col=0; col<pCodecCtx->width; col++)
@@ -136,6 +139,10 @@ int VideoReader::ReadFrames(const char* videofilename_in, int pyramid_level)
                          image_mat->at<Vec3b>(row,col)[0]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+2];
                          image_mat->at<Vec3b>(row,col)[1]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+1];
                          image_mat->at<Vec3b>(row,col)[2]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+0];
+
+                         image_blured->at<Vec3b>(row,col)[0]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+2];
+                         image_blured->at<Vec3b>(row,col)[1]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+1];
+                         image_blured->at<Vec3b>(row,col)[2]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+0];
                         // if((row<5)&&(col<5)&&(i<5))
                         // {
                         //     printf("image_mat->at<Vec3b>(row,col)[0]=%uc\n",image_mat->at<Vec3b>(row,col)[0]);
@@ -152,7 +159,7 @@ int VideoReader::ReadFrames(const char* videofilename_in, int pyramid_level)
                     //Mat* image_down = new Mat(*image_mat);
                    for(int lvl=1; lvl<=pyramid_level;lvl++)
                    {
-                    pyrDown(*image_mat, *image_mat, Size(image_mat->cols/2, image_mat->rows/2));
+                    pyrDown(*image_blured, *image_blured, Size(image_blured->cols/2, image_blured->rows/2));
                    }
                }
                //imwrite(imageDownName, *image_mat);
@@ -166,8 +173,8 @@ int VideoReader::ReadFrames(const char* videofilename_in, int pyramid_level)
        av_free_packet(&packet);
      }
 
-     this->frameHeight=this->frames[0]->rows;
-     this->frameWidth=this->frames[0]->cols;
+     this->frameHeight=this->blured_frames[0]->rows;
+     this->frameWidth=this->blured_frames[0]->cols;
      this->NumberOfFrames=i-6; //throw out 6 last frames
      printf("numberOfFrames(-6)=%d\n",this->NumberOfFrames);
      av_free(buffer);
@@ -206,19 +213,37 @@ int VideoReader::PrintFrames(void)
 
 }
 
-int VideoReader::ChangePyramidLevel(int pyramid_level)
+int VideoReader::PyrUpBlured(int pyramid_level)
 {
     if(pyramid_level>=1)
     {
         for(int NofFr = 0; NofFr < this->NumberOfFrames; NofFr++)
         {
-            Mat* image_mat=this->frames[NofFr];
+            Mat* image_mat=this->blured_frames[NofFr];
             for(int lvl=1; lvl<=pyramid_level;lvl++)
             {
                 pyrUp(*image_mat, *image_mat, Size(image_mat->cols*2, image_mat->rows*2));
             }
         }
     }
+}
+
+int VideoReader::AddPulseToFrames(void)
+{
+    for(int NofFr = 0; NofFr < this->NumberOfFrames; NofFr++)
+    {
+        Mat* image_mat=this->frames[NofFr];
+        Mat* image_blured=this->blured_frames[NofFr];
+        for(int row=0; row<this->frames[0]->rows;row++)
+        {
+            for(int col=0; col<this->frames[0]->cols; col++)
+            {
+                image_mat->at<Vec3b>(row,col)[0]=image_mat->at<Vec3b>(row,col)[0]+image_blured->at<Vec3b>(row,col)[0];
+                image_mat->at<Vec3b>(row,col)[1]=image_mat->at<Vec3b>(row,col)[1]+image_blured->at<Vec3b>(row,col)[1];
+                image_mat->at<Vec3b>(row,col)[2]=image_mat->at<Vec3b>(row,col)[2]+image_blured->at<Vec3b>(row,col)[2];
+            }
+        }
+     }
 }
 
 int VideoReader::getFrameHeight(void)
@@ -239,4 +264,9 @@ int VideoReader::getNumberOfFrames(void)
 Mat** VideoReader::getFrames(void)
 {
     return(this->frames);
+}
+
+Mat** VideoReader::getBluredFrames(void)
+{
+    return(this->blured_frames);
 }

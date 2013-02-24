@@ -14,10 +14,10 @@ private:
 
     double* AllFrames;       //data
 
-    void FramesToVector(Mat** src, double* dst);
+    void FramesToVector(Mat** src, double* dst, int frWidth, int frHeight, int NofFrames);
 
-    void rgb2yiq(void);
-    void yiq2rgb(void);
+    void rgb2yiq(double* srcDst, int frWidth, int frHeight, int NofFrames);
+    void yiq2rgb(double* srcDst, int frWidth, int frHeight, int NofFrames);
     void normalize(double* src, long len, double factor);
     int* createFreqMask(double fLow, double fHight);
     void copyVector(double* src, double* dst, long len);
@@ -29,7 +29,8 @@ public:
     processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, int sRate_in, Mat** Frames);
     ~processor();
     void work(double fLow, double fHight, double ampFactor);
-    void VectorToFrames(double* src, Mat** dst);
+    void VectorToFrames(double* src, Mat** dst, int frWidth, int frHeight, int NofFrames);
+    int AddPulseToFrames(Mat** frames, Mat** pulse);
     double* getAllFrames(void);
     int getFrH(void);
     int getFrW(void);

@@ -103,7 +103,7 @@ processor::processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_i
 {
     long LengthAll=this->NumberOfFrames*this->frameHeight*this->frameWidth*3;
     this->AllFrames=(double*)malloc(LengthAll*sizeof(double));
-    this->FramesToVector(Frames,this->AllFrames);
+    this->FramesToVector(Frames,this->AllFrames, this->frameWidth, this->frameHeight, this->NumberOfFrames);
 }
 
 processor::~processor()
@@ -111,66 +111,66 @@ processor::~processor()
     free(this->AllFrames);
 }
 
-void processor::FramesToVector(Mat** src, double* dst)
+void processor::FramesToVector(Mat** src, double* dst, int frWidth, int frHeight, int NofFrames)
 {
 
-    int rowD= NumberOfFrames*frameHeight;
-    int colD=rowD*frameWidth;
+    long rowD= NofFrames*frHeight;
+    long colD=rowD*frWidth;
 
     for(int ch = 2; ch >= 0; ch--)
     {
-        for(int col = 0; col < this->frameWidth; col++)
+        for(int col = 0; col < frWidth; col++)
         {
-            for(int row = 0; row < this->frameHeight; row++)
+            for(int row = 0; row < frHeight; row++)
             {
-                for(int t = 0; t < this->NumberOfFrames; t++)
+                for(int t = 0; t < NofFrames; t++)
                 {
-                    dst[ch*colD+col*rowD+row*NumberOfFrames+t]=src[t]->at<Vec3b>(row,col).val[ch];
+                    dst[ch*colD+col*rowD+row*NofFrames+t]=src[t]->at<Vec3b>(row,col).val[ch];
                 }
             }
         }
     }
 }
 
-void processor::VectorToFrames(double* src, Mat** dst)
+void processor::VectorToFrames(double* src, Mat** dst, int frWidth, int frHeight, int NofFrames)
 {
-    int rowD= NumberOfFrames*frameHeight;
-    int colD=rowD*frameWidth;
+    long rowD= (long)NofFrames*(long)frHeight;
+    long colD=(long)rowD*(long)frWidth;
 
     for(int ch = 2; ch >= 0; ch--)
     {
-        for(int col = 0; col < this->frameWidth; col++)
+        for(int col = 0; col < frWidth; col++)
         {
-            for(int row = 0; row < this->frameHeight; row++)
+            for(int row = 0; row < frHeight; row++)
             {
-                for(int t = 0; t < this->NumberOfFrames; t++)
+                for(int t = 0; t < NofFrames; t++)
                 {
-                    dst[t]->at<Vec3b>(row,col).val[ch] = src[ch*colD+col*rowD+row*NumberOfFrames+t];
+                    dst[t]->at<Vec3b>(row,col).val[ch] = src[ch*colD+col*rowD+row*NofFrames+t];
                 }
             }
         }
     }
 }
 
-void processor::rgb2yiq(void)
+void processor::rgb2yiq(double* srcDst, int frWidth, int frHeight, int NofFrames)
 {
-    long chD=this->NumberOfFrames*this->frameHeight*this->frameWidth;
+    long chD=(long)NofFrames*(long)frHeight*(long)frWidth;
     for(long ch = 0; ch <chD; ch++)
     {
-        AllFrames[ch] = AllFrames[ch]*rgb2yiqCoef[0] + AllFrames[ch+chD]*rgb2yiqCoef[1] + AllFrames[ch+chD*2]*rgb2yiqCoef[2];
-        AllFrames[ch+chD] = AllFrames[ch]*rgb2yiqCoef[3] + AllFrames[ch+chD]*rgb2yiqCoef[4] + AllFrames[ch+chD*2]*rgb2yiqCoef[5];
-        AllFrames[ch+chD*2] = AllFrames[ch]*rgb2yiqCoef[6] + AllFrames[ch+chD]*rgb2yiqCoef[7] + AllFrames[ch+chD*2]*rgb2yiqCoef[8];
+       srcDst[ch] = srcDst[ch]*rgb2yiqCoef[0] + srcDst[ch+chD]*rgb2yiqCoef[1] + srcDst[ch+chD*2]*rgb2yiqCoef[2];
+       srcDst[ch+chD] = srcDst[ch]*rgb2yiqCoef[3] + srcDst[ch+chD]*rgb2yiqCoef[4] + srcDst[ch+chD*2]*rgb2yiqCoef[5];
+       srcDst[ch+chD*2] = srcDst[ch]*rgb2yiqCoef[6] + srcDst[ch+chD]*rgb2yiqCoef[7] + srcDst[ch+chD*2]*rgb2yiqCoef[8];
     }
 
 }
-void processor::yiq2rgb(void)
+void processor::yiq2rgb(double* srcDst, int frWidth, int frHeight, int NofFrames)
 {
-    long chD=this->NumberOfFrames*this->frameHeight*this->frameWidth;
+    long chD=(long)NofFrames*(long)frHeight*(long)frWidth;
     for(long ch = 0; ch <chD; ch++)
     {
-        AllFrames[ch] = AllFrames[ch]*yiq2rgbCoef[0] + AllFrames[ch+chD]*yiq2rgbCoef[1] + AllFrames[ch+chD*2]*yiq2rgbCoef[2];
-        AllFrames[ch+chD] = AllFrames[ch]*yiq2rgbCoef[3] + AllFrames[ch+chD]*yiq2rgbCoef[4] + AllFrames[ch+chD*2]*yiq2rgbCoef[5];
-        AllFrames[ch+chD*2] = AllFrames[ch]*yiq2rgbCoef[6] + AllFrames[ch+chD]*yiq2rgbCoef[7] + AllFrames[ch+chD*2]*yiq2rgbCoef[8];
+        srcDst[ch] = srcDst[ch]*yiq2rgbCoef[0] + srcDst[ch+chD]*yiq2rgbCoef[1] + srcDst[ch+chD*2]*yiq2rgbCoef[2];
+        srcDst[ch+chD] = srcDst[ch]*yiq2rgbCoef[3] + srcDst[ch+chD]*yiq2rgbCoef[4] + srcDst[ch+chD*2]*yiq2rgbCoef[5];
+        srcDst[ch+chD*2] = srcDst[ch]*yiq2rgbCoef[6] + srcDst[ch+chD]*yiq2rgbCoef[7] + srcDst[ch+chD*2]*yiq2rgbCoef[8];
     }
 }
 
@@ -254,7 +254,7 @@ void processor::sumVector(double* src1, double *src2, double* dst, long len)
 void processor::work(double fLow, double fHight, double ampFactor)
 {
     this->normalize((double*)this->AllFrames,(long) this->NumberOfFrames*this->frameHeight*this->frameWidth*3,255.0);
-    this->rgb2yiq();
+    this->rgb2yiq(this->AllFrames,this->frameWidth,this->frameHeight, this->NumberOfFrames);
     printf("flow= %f, fHight= %f \n", fLow, fHight);
     int* mask=createFreqMask(fLow,fHight);
 
@@ -288,8 +288,9 @@ void processor::work(double fLow, double fHight, double ampFactor)
         this->applyMask(out_fft,in_ifft,mask,this->NumberOfFrames/2+1);
         fftw_execute(p_ifft);
         this->normalize(out_ifft, (long)this->NumberOfFrames,(double)this->NumberOfFrames/ampFactor);
-        this->sumVector(&this->AllFrames[i*this->NumberOfFrames],out_ifft,&this->AllFrames[i*this->NumberOfFrames],(long)this->NumberOfFrames);
+        //this->sumVector(&this->AllFrames[i*this->NumberOfFrames],out_ifft,&this->AllFrames[i*this->NumberOfFrames],(long)this->NumberOfFrames);
 
+        this->copyVector(out_ifft, &this->AllFrames[i*this->NumberOfFrames],this->NumberOfFrames);
         //char* f_name_fft_in2 = "fft_in2.log";
         //PrintDataDb(out_ifft,this->NumberOfFrames,f_name_fft_in2);
     }
@@ -302,8 +303,14 @@ void processor::work(double fLow, double fHight, double ampFactor)
     free(out_ifft);
 
 
-    this->yiq2rgb();
+    this->yiq2rgb(this->AllFrames,this->frameWidth,this->frameHeight, this->NumberOfFrames);
     this->normalize((double*)this->AllFrames,(long) this->NumberOfFrames*this->frameHeight*this->frameWidth*3,(double)1.0/255.0);
+}
+
+
+int AddPulseToFrames(Mat** frames, Mat** pulse)
+{
+
 }
 
 double* processor::getAllFrames(void)
