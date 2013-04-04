@@ -25,10 +25,10 @@ int VideoReader::ReadFrames(const char* videofilename_in, int pyramid_level)
      AVFormatContext *pFormatCtx=NULL;
 
      // Open video file
-     char* filename_in = "face.mp4";
+     //char* filename_in = "face.mp4";
 
      //Look header info
-     if(avformat_open_input(&pFormatCtx, filename_in, NULL, NULL)!=0)
+     if(avformat_open_input(&pFormatCtx, videofilename_in, NULL, NULL)!=0)
           {printf("Couldn't open video file  \n");return -1;} // Couldn't open file
 
      // Retrieve stream information
@@ -36,7 +36,7 @@ int VideoReader::ReadFrames(const char* videofilename_in, int pyramid_level)
        {printf("Couldn't find stream information\n");return -1;} // Couldn't find stream information
 
      // Dump information about file onto standard error
-     av_dump_format(pFormatCtx, 0, filename_in, 0);
+     av_dump_format(pFormatCtx, 0, videofilename_in, 0);
 
 
      //search video stream
@@ -190,6 +190,27 @@ int VideoReader::ReadFrames(const char* videofilename_in, int pyramid_level)
 
  }
 
+void print_frame_txt(Mat* frame,const char* filename)
+{
+    int fr_rows = frame->rows;
+    int fr_cols = frame->cols;
+    FILE * stream;
+            if ((stream=fopen(filename, "w")) != 0)
+    {
+        fprintf(stream, "row\t\t R \t\t\t G\t\t\tB\t\t\n");
+        for(int curr_row = 0; curr_row < fr_rows; curr_row++)
+        {
+            fprintf(stream, "\n \t row = %d\n",curr_row);
+            for(int curr_col = 0; curr_col <fr_cols; curr_col++)
+            {
+                fprintf(stream, "%d %u \t|\t %u \t|\t %u",curr_row, frame->at<Vec3b>(curr_row,curr_col)[0],frame->at<Vec3b>(curr_row,curr_col)[1],frame->at<Vec3b>(curr_row,curr_col)[2]);
+                fputc('\n',stream);
+            }
+
+        }
+    }
+    fclose(stream);
+}
 
 int VideoReader::PrintFrames(void)
 {
@@ -200,13 +221,20 @@ int VideoReader::PrintFrames(void)
     else
     {
         char frame_filename[30];
-
+        char frame_filename_txt[30];
+        char frame_filenameB_txt[32];
 
         for(int i=0; i<NumberOfFrames; i++)
         {
             //if((i<10)||(i>NumberOfFrames-10)){              //FIXME
             sprintf(frame_filename, "frame%d.ppm", i);
+            //sprintf(frame_filename_txt, "FramesInputTxt/frame%d.txt",i);
+            //sprintf(frame_filenameB_txt, "FramesBlurredTxt/frame%d.txt",i);
             imwrite(frame_filename, *(this->frames[i]));
+
+            //print_frame_txt(this->frames[i],frame_filename_txt);
+            //if((i<5)||(i>282)){
+            //    print_frame_txt(this->blured_frames[i],frame_filenameB_txt);}
             //}
         }
     }
@@ -222,7 +250,8 @@ int VideoReader::PyrUpBlured(int pyramid_level)
             Mat* image_mat=this->blured_frames[NofFr];
             for(int lvl=1; lvl<=pyramid_level;lvl++)
             {
-                pyrUp(*image_mat, *image_mat, Size(image_mat->cols*2, image_mat->rows*2));
+                //pyrUp(*image_mat, *image_mat, Size(image_mat->cols*2, image_mat->rows*2));
+                resize(*image_mat,*image_mat,Size(image_mat->cols*2, image_mat->rows*2),0,0,INTER_CUBIC);
             }
         }
     }

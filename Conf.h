@@ -29,9 +29,10 @@ extern "C" {
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
+#include <QDir>
 
 const int FRAMES_MAX =1000;
 typedef float transRgbYiqMatr[9];
-const transRgbYiqMatr rgb2yiqCoef={0.299, 0.587, 0.144, 0.596, -0.274, -0.322, 0.211, -0.522, 0.311};
+const transRgbYiqMatr rgb2yiqCoef={0.2989, 0.587, 0.144, 0.5959, -0.2744, -0.3216, 0.2115, -0.5229, 0.3114};
 const transRgbYiqMatr yiq2rgbCoef={1.000, 0.956, 0.621, 1.000, -0.272, -0.647, 1.000, -1.106, 1.703};
 #endif // CONF_H

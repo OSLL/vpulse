@@ -94,12 +94,65 @@ void PrintDataDb(double* src, long len, const char* filename)
 }
 //=========================================================
 
+void print_frame_N(int N,double* src, int num_of_fr, const char* filename, int height_fr, int width_fr)
+{
+    FILE * stream;
+            if ((stream=fopen(filename, "w")) != 0)
+    {
+    for(int row_id=0; row_id<height_fr; row_id++)
+    {
+        fprintf(stream,"\n \t row = %d \n\n",row_id);
+        for(int col_id=0; col_id<width_fr; col_id++)
+        {
+                fprintf(stream, "%d. \t %lf || \t %lf || \t %lf",col_id,
+                        src[N + row_id*num_of_fr + col_id*num_of_fr*height_fr],
+                        src[N + row_id*num_of_fr + col_id*num_of_fr*height_fr + num_of_fr*height_fr*width_fr],
+                        src[N + row_id*num_of_fr + col_id*num_of_fr*height_fr + num_of_fr*height_fr*width_fr*2]);
+                fputc('\n',stream);
+        }
+    }
+    }
+
+fclose(stream);
+}
+
+//==============================
+
+void PrintDataFrame(double* src, int num_of_fr, const char* filename, int height_fr, int width_fr)
+{
+        FILE * stream;
+                if ((stream=fopen(filename, "w")) != 0)
+        {
+            fprintf(stream, "№\t\t Y \t\t\t I\t\t\tQ\t\t\n");
+            for(int col_id=0; col_id<width_fr; col_id++)
+            {
+                fprintf(stream,"\n \t column = %d \n\n",col_id);
+                for(int row_id=0; row_id<height_fr; row_id++)
+                {
+                    fprintf(stream,"\n \t row = %d \n\n",row_id);
+                    for(int curr_id1 = 0; curr_id1 < num_of_fr; curr_id1++)
+                    {
+
+                        fprintf(stream, "%d. \t %lf || \t %lf || \t %lf",curr_id1,
+                                src[curr_id1 + row_id*num_of_fr + col_id*num_of_fr*height_fr],
+                                src[curr_id1 + row_id*num_of_fr + col_id*num_of_fr*height_fr + num_of_fr*height_fr*width_fr],
+                                src[curr_id1 + row_id*num_of_fr + col_id*num_of_fr*height_fr + num_of_fr*height_fr*width_fr*2]);
+                        fputc('\n',stream);
+
+                    };
+                }
+            }
+        }
+        fclose(stream);
+}
+//=========================================================
 
 processor::processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, int sRate_in, Mat** Frames):
     NumberOfFrames(NumberOfFrames_in),
     frameHeight(frameHeight_in),
     frameWidth(frameWidth_in),
-    samplingRate(sRate_in)
+    samplingRate(sRate_in),
+    debugflag(0)
 {
     long LengthAll=this->NumberOfFrames*this->frameHeight*this->frameWidth*3;
     this->AllFrames=(double*)malloc(LengthAll*sizeof(double));
@@ -116,8 +169,9 @@ void processor::FramesToVector(Mat** src, double* dst, int frWidth, int frHeight
 
     long rowD= NofFrames*frHeight;
     long colD=rowD*frWidth;
-
+    int invCh =0;                       //FIXME - FIxed bug with R-B channel rotation
     for(int ch = 2; ch >= 0; ch--)
+    //for(int ch = 0; ch < 3; ch++)   //FIXME
     {
         for(int col = 0; col < frWidth; col++)
         {
@@ -125,10 +179,11 @@ void processor::FramesToVector(Mat** src, double* dst, int frWidth, int frHeight
             {
                 for(int t = 0; t < NofFrames; t++)
                 {
-                    dst[ch*colD+col*rowD+row*NofFrames+t]=src[t]->at<Vec3b>(row,col).val[ch];
+                    dst[(long)invCh*colD+col*rowD+(long)row*(long)NofFrames+(long)t]=src[t]->at<Vec3b>(row,col).val[ch];
                 }
             }
         }
+        invCh++;
     }
 }
 
@@ -136,8 +191,9 @@ void processor::VectorToFrames(double* src, Mat** dst, int frWidth, int frHeight
 {
     long rowD= (long)NofFrames*(long)frHeight;
     long colD=(long)rowD*(long)frWidth;
-
+    int invCh =0;
     for(int ch = 2; ch >= 0; ch--)
+    //for(int ch = 0; ch < 3; ch++)     //FIXME
     {
         for(int col = 0; col < frWidth; col++)
         {
@@ -145,32 +201,54 @@ void processor::VectorToFrames(double* src, Mat** dst, int frWidth, int frHeight
             {
                 for(int t = 0; t < NofFrames; t++)
                 {
-                    dst[t]->at<Vec3b>(row,col).val[ch] = src[ch*colD+col*rowD+row*NofFrames+t];
+                    dst[t]->at<Vec3b>(row,col).val[ch] = src[invCh*colD+col*rowD+row*NofFrames+t];
                 }
             }
         }
+        invCh++;
     }
 }
 
 void processor::rgb2yiq(double* srcDst, int frWidth, int frHeight, int NofFrames)
 {
     long chD=(long)NofFrames*(long)frHeight*(long)frWidth;
+    double tmp[3];                  //FIXME BUG FIXED
     for(long ch = 0; ch <chD; ch++)
     {
-       srcDst[ch] = srcDst[ch]*rgb2yiqCoef[0] + srcDst[ch+chD]*rgb2yiqCoef[1] + srcDst[ch+chD*2]*rgb2yiqCoef[2];
-       srcDst[ch+chD] = srcDst[ch]*rgb2yiqCoef[3] + srcDst[ch+chD]*rgb2yiqCoef[4] + srcDst[ch+chD*2]*rgb2yiqCoef[5];
-       srcDst[ch+chD*2] = srcDst[ch]*rgb2yiqCoef[6] + srcDst[ch+chD]*rgb2yiqCoef[7] + srcDst[ch+chD*2]*rgb2yiqCoef[8];
+        /*if((debugflag==1)&&(ch<3))
+        {
+            printf("%ld srcDst[%ld]=%lf\n",ch,ch,srcDst[ch]);
+            printf("%ld srcDst[%ld]=%lf\n",ch,ch+chD,srcDst[ch+chD]);
+            printf("%ld srcDst[%ld]=%lf\n",ch,ch+chD*2,srcDst[ch+chD*2]);
+        }*/
+       tmp[0]=srcDst[ch];
+       tmp[1]=srcDst[ch+chD];
+       tmp[2]=srcDst[ch+chD*2];
+       srcDst[ch] = tmp[0]*rgb2yiqCoef[0] + tmp[1]*rgb2yiqCoef[1] + tmp[2]*rgb2yiqCoef[2];
+       srcDst[ch+chD] = tmp[0]*rgb2yiqCoef[3] + tmp[1]*rgb2yiqCoef[4] + tmp[2]*rgb2yiqCoef[5];
+       srcDst[ch+chD*2] = tmp[0]*rgb2yiqCoef[6] + tmp[1]*rgb2yiqCoef[7] + tmp[2]*rgb2yiqCoef[8];
+       /*if((debugflag==1)&&(ch<3))
+       {
+           printf("%ld srcDst[%ld]=%lf\n",ch,ch,srcDst[ch]);
+           printf("%ld srcDst[%ld]=%lf\n",ch,ch+chD,srcDst[ch+chD]);
+           printf("%ld srcDst[%ld]=%lf\n",ch,ch+chD*2,srcDst[ch+chD*2]);
+           printf("\n\n");
+       }*/
     }
 
 }
 void processor::yiq2rgb(double* srcDst, int frWidth, int frHeight, int NofFrames)
 {
     long chD=(long)NofFrames*(long)frHeight*(long)frWidth;
+    double tmp[3];                      //FIXME BUG FIXED
     for(long ch = 0; ch <chD; ch++)
     {
-        srcDst[ch] = srcDst[ch]*yiq2rgbCoef[0] + srcDst[ch+chD]*yiq2rgbCoef[1] + srcDst[ch+chD*2]*yiq2rgbCoef[2];
-        srcDst[ch+chD] = srcDst[ch]*yiq2rgbCoef[3] + srcDst[ch+chD]*yiq2rgbCoef[4] + srcDst[ch+chD*2]*yiq2rgbCoef[5];
-        srcDst[ch+chD*2] = srcDst[ch]*yiq2rgbCoef[6] + srcDst[ch+chD]*yiq2rgbCoef[7] + srcDst[ch+chD*2]*yiq2rgbCoef[8];
+        tmp[0]=srcDst[ch];
+        tmp[1]=srcDst[ch+chD];
+        tmp[2]=srcDst[ch+chD*2];
+        srcDst[ch] = tmp[0]*yiq2rgbCoef[0] + tmp[1]*yiq2rgbCoef[1] + tmp[2]*yiq2rgbCoef[2];
+        srcDst[ch+chD] = tmp[0]*yiq2rgbCoef[3] + tmp[1]*yiq2rgbCoef[4] + tmp[2]*yiq2rgbCoef[5];
+        srcDst[ch+chD*2] = tmp[0]*yiq2rgbCoef[6] + tmp[1]*yiq2rgbCoef[7] + tmp[2]*yiq2rgbCoef[8];
     }
 }
 
@@ -245,17 +323,31 @@ void processor::applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long l
 
 void processor::sumVector(double* src1, double *src2, double* dst, long len)
 {
-    for(int i=0; i<len; i++)
+    for(long i=0; i<len; i++)
     {
         dst[i]=src1[i]+src2[i];
     }
 }
 
+
+
 void processor::work(double fLow, double fHight, double ampFactor)
 {
+    //char* UGDownStack_file = "UnnormGDownStack.log";
+    //PrintDataFrame(this->AllFrames, this->NumberOfFrames, UGDownStack_file, this->frameHeight, this->frameWidth);
+    /*char* Fr_from_arr = "FramesBlurredTxt/frame_arr0.log";
+    char* Fr_from_arr1 = "FramesBlurredTxt/frame_arr1.log";
+    char* Fr_from_arr2 = "FramesBlurredTxt/frame_arr2.log";
+    char* Fr_from_arr291 = "FramesBlurredTxt/frame_arr291.log";
+    print_frame_N(0,AllFrames, this->NumberOfFrames, Fr_from_arr, this->frameHeight, this->frameWidth);
+    print_frame_N(1,AllFrames, this->NumberOfFrames, Fr_from_arr1, this->frameHeight, this->frameWidth);
+    print_frame_N(2,AllFrames, this->NumberOfFrames, Fr_from_arr2, this->frameHeight, this->frameWidth);
+    print_frame_N(290,AllFrames, this->NumberOfFrames, Fr_from_arr291, this->frameHeight, this->frameWidth);*/
     this->normalize((double*)this->AllFrames,(long) this->NumberOfFrames*this->frameHeight*this->frameWidth*3,255.0);
     this->rgb2yiq(this->AllFrames,this->frameWidth,this->frameHeight, this->NumberOfFrames);
     printf("flow= %f, fHight= %f \n", fLow, fHight);
+    //char* GDownStack_file = "GDownStack.log";
+    //PrintDataFrame(this->AllFrames, this->NumberOfFrames, GDownStack_file, this->frameHeight, this->frameWidth);
     int* mask=createFreqMask(fLow,fHight);
 
     //const char* filename_mask = "fr_mask.log";
@@ -272,6 +364,7 @@ void processor::work(double fLow, double fHight, double ampFactor)
     fftw_complex* in_ifft= (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(this->NumberOfFrames));
     double* out_ifft = (double*)malloc(sizeof(double)*this->NumberOfFrames);
     fftw_plan p_ifft = fftw_plan_dft_c2r_1d(this->NumberOfFrames,in_ifft,out_ifft,FFTW_MEASURE);
+
 
     for(int i=0; i<this->frameHeight*this->frameWidth*3; i++)
     {
@@ -293,6 +386,7 @@ void processor::work(double fLow, double fHight, double ampFactor)
         this->copyVector(out_ifft, &this->AllFrames[i*this->NumberOfFrames],this->NumberOfFrames);
         //char* f_name_fft_in2 = "fft_in2.log";
         //PrintDataDb(out_ifft,this->NumberOfFrames,f_name_fft_in2);
+
     }
     //===========
     fftw_destroy_plan(p);
@@ -302,16 +396,102 @@ void processor::work(double fLow, double fHight, double ampFactor)
     free(in_fft);
     free(out_ifft);
 
+    //print fft_results
+    //char frame_filename[35];
+    //for(int i = 0; i< this->NumberOfFrames; i++)
+    //{
+        //sprintf(frame_filename, "PulseSignal/fft_frame.log");
+        //PrintDataFrame(this->AllFrames,this->NumberOfFrames,frame_filename,this->frameHeight,this->frameWidth);
+    //}
 
-    this->yiq2rgb(this->AllFrames,this->frameWidth,this->frameHeight, this->NumberOfFrames);
-    this->normalize((double*)this->AllFrames,(long) this->NumberOfFrames*this->frameHeight*this->frameWidth*3,(double)1.0/255.0);
+    //this->yiq2rgb(this->AllFrames,this->frameWidth,this->frameHeight, this->NumberOfFrames);
+    //this->normalize((double*)this->AllFrames,(long) this->NumberOfFrames*this->frameHeight*this->frameWidth*3,(double)1.0/255.0);
 }
 
-
-int AddPulseToFrames(Mat** frames, Mat** pulse)
+void processor::rgbBoarder(double* src, long len)
 {
-
+    for(long i=0; i<len; i++)
+    {
+        if(src[i]>1)
+        {src[i]=1;}
+        if(src[i]<0)
+        {src[i]=0;}
+    }
 }
+
+void processor::YIQ2RGBnormalizeColorChannels(double* srcDst, int frWidth, int frHeight, int NofFrames)
+{
+    long chD=(long)NofFrames*(long)frHeight*(long)frWidth;
+    double tmp[3];                      //FIXME BUG FIXED
+    for(long ch = 0; ch <chD; ch++)
+    {
+        tmp[0]=srcDst[ch];
+        tmp[1]=srcDst[ch+chD];
+        tmp[2]=srcDst[ch+chD*2];
+        srcDst[ch] = tmp[0]*yiq2rgbCoef[0] + tmp[1]*yiq2rgbCoef[1] + tmp[2]*yiq2rgbCoef[2];
+        srcDst[ch+chD] = tmp[0]*yiq2rgbCoef[3] + tmp[1]*yiq2rgbCoef[4] + tmp[2]*yiq2rgbCoef[5];
+        srcDst[ch+chD*2] = tmp[0]*yiq2rgbCoef[6] + tmp[1]*yiq2rgbCoef[7] + tmp[2]*yiq2rgbCoef[8];
+        double normfactor = 1.0;
+        if(srcDst[ch] > 1.0){
+            normfactor=srcDst[ch];
+        }
+        if((srcDst[ch+chD] > 1.0)&&(srcDst[ch+chD]>normfactor)){
+            normfactor=srcDst[ch+chD];
+        }
+        if((srcDst[ch+chD*2] > 1.0)&&(srcDst[ch+chD*2]>normfactor)){
+            normfactor=srcDst[ch+chD*2];
+        }
+        if(normfactor > 1.0)
+        {
+            srcDst[ch]=srcDst[ch]/normfactor;
+            srcDst[ch+chD]=srcDst[ch+chD]/normfactor;
+            srcDst[ch+chD*2]=srcDst[ch+chD*2]/normfactor;
+        }
+    }
+}
+
+int processor::AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, int NofFrames)
+{
+    int FrHeight = frames[0]->rows;
+    int FrWidth = frames[0]->cols;
+    long LengthAll = /*NofFrames**/FrWidth*FrHeight*3;
+    double* fullFrames = (double*)malloc(LengthAll*sizeof(double));
+    double* pulseFrames = (double*)malloc(LengthAll*sizeof(double));
+    char* Fr_from_arr = "FramesInputTxt/frame_arrYIQSumm0.log";
+    char* Fr_from_arr1 = "FramesInputTxt/frame_arrYIQSumm1.log";
+    char* Fr_from_arr2 = "FramesInputTxt/frame_arrYIQSumm2.log";
+    char* Fr_from_arr291 = "FramesInputTxt/frame_arrYIQSumm291.log";
+    for(int frame_number =0; frame_number <NofFrames;frame_number++)
+    {
+
+    this->FramesToVector(&frames[frame_number],fullFrames, FrWidth, FrHeight, 1);
+    //this->FramesToVector(&pulse[frame_number],pulseFrames, FrWidth, FrHeight, 1);
+    this->normalize(fullFrames,LengthAll,255.0);
+    //this->normalize(pulseFrames,LengthAll, 255.0);
+        if(frame_number<5){this->debugflag=1;}
+    this->rgb2yiq(fullFrames,FrWidth, FrHeight, 1);
+        this->debugflag=0;
+    //this->rgb2yiq(pulseFrames,FrWidth, FrHeight, 1);
+//fix here:
+ NearInterpolation(AllFrames,pulseFrames,frameWidth,frameHeight,FrWidth,FrHeight,NofFrames,frame_number);
+//================
+    //long tmp = LengthAll/3;
+    this->sumVector(fullFrames,pulseFrames,fullFrames,LengthAll);     //FIXME tmp above
+
+    //this->yiq2rgb(fullFrames,FrWidth, FrHeight, 1);
+    this->YIQ2RGBnormalizeColorChannels(fullFrames,FrWidth, FrHeight, 1);
+        if(frame_number==0){print_frame_N(0,fullFrames, 1, Fr_from_arr, FrHeight, FrWidth);}
+        if(frame_number==1){print_frame_N(0,fullFrames, 1, Fr_from_arr1, FrHeight, FrWidth);}
+        if(frame_number==2){print_frame_N(0,fullFrames, 1, Fr_from_arr2, FrHeight, FrWidth);}
+        if(frame_number==290){print_frame_N(0,fullFrames, 1, Fr_from_arr291, FrHeight, FrWidth);}
+    this->rgbBoarder(fullFrames,LengthAll);
+    this->normalize(fullFrames,LengthAll,1.0/255.0);
+    this->VectorToFrames(fullFrames,&frames[frame_number],FrWidth,FrHeight,1);
+    }
+    free(fullFrames);
+    free(pulseFrames);
+}
+
 
 double* processor::getAllFrames(void)
 {
@@ -331,4 +511,36 @@ int processor::getFrW(void)
 int processor::getNFr(void)
 {
     return(this->NumberOfFrames);
+}
+
+void processor::NearInterpolation(double* src, double* dst, int oldwidth, int oldheight, int newwidth, int newheight, int nofFr, int frameInd)
+{
+
+    //if(src == NULL) return false;
+    //
+    // Get a new buuffer to interpolate into
+    //unsigned char* newData = new unsigned char [newWidth * newHeight * 3];
+
+    double scalewidth =  (double)newwidth / (double)oldwidth;
+    double scaleheight = (double)newheight / (double)oldheight;
+
+    for(int cx = 0; cx < newwidth; cx++)
+    {
+        for(int cy = 0; cy < newheight; cy++)
+        {
+            int pixel = (cx * (newheight/**nofFr*/)) + (cy/**nofFr*/)/*+frameInd*/;
+            long nearestMatch =  (((long)(cx / scalewidth) * (oldheight*nofFr)) + ((long)(cy / scaleheight)*nofFr) )+frameInd;
+            //printf("pixel = %d\n",pixel);
+            //printf("near = %d\n",nearestMatch);
+            dst[pixel] =  src[nearestMatch];
+            dst[pixel + newheight*newwidth/**nofFr*/] =  src[nearestMatch + oldheight*oldwidth*nofFr];
+            dst[pixel + newheight*newwidth*2/**nofFr*/] =  src[nearestMatch + oldheight*oldwidth*nofFr*2];
+        }
+    }
+
+    //
+    //delete[] _data;
+    //_data = newData;
+    //_width = newWidth;
+    //_height = newHeight;
 }

@@ -11,6 +11,7 @@ private:
     int frameHeight;
     int frameWidth;
     int samplingRate;
+    int debugflag;
 
     double* AllFrames;       //data
 
@@ -24,17 +25,20 @@ private:
     void copyFFTW_cpx(fftw_complex* src, fftw_complex* dst, long len);
     void applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long len);
     void sumVector(double* src1, double *src2, double* dst, long len);
+    void rgbBoarder(double* src, long len);
+    void YIQ2RGBnormalizeColorChannels(double* srcDst, int frWidth, int frHeight, int NofFrames);
 
 public:
     processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, int sRate_in, Mat** Frames);
     ~processor();
     void work(double fLow, double fHight, double ampFactor);
     void VectorToFrames(double* src, Mat** dst, int frWidth, int frHeight, int NofFrames);
-    int AddPulseToFrames(Mat** frames, Mat** pulse);
+    int AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, int NofFrames);
     double* getAllFrames(void);
     int getFrH(void);
     int getFrW(void);
     int getNFr(void);
+    void NearInterpolation(double* src, double* dst, int oldwidth, int oldheight, int newwidth, int newheight, int nofFr, int frameInd);
     //tmp==================
     void PrintData(double* src, long len, const char* filename);
     //=====================

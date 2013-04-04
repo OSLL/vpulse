@@ -26,6 +26,8 @@ public:
     Mat** getFrames(void);
     Mat** getBluredFrames(void);
 
+
+
     VideoReader();
     ~VideoReader();
 };
