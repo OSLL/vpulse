@@ -2,6 +2,7 @@
 #define VIDEOREADER_H
 
 #include "Conf.h"
+#include "processor.h"
 using namespace cv;
 using namespace std;
 
@@ -13,6 +14,10 @@ private:
     int NumberOfFrames;
     int frameHeight;
     int frameWidth;
+
+    int workstady;
+    Mat* cvMatframe;
+    int mode;
 public:
 
     int ReadFrames(const char* videofilename_in, int pyramid_level);
@@ -26,7 +31,9 @@ public:
     Mat** getFrames(void);
     Mat** getBluredFrames(void);
 
-
+    void CVReadVideo(const char* videofilename_in);
+    /*Mat**/ IplImage* cvframe_;
+    void allocateMatBuffer(int n_height, int n_width);
 
     VideoReader();
     ~VideoReader();

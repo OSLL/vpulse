@@ -30,6 +30,7 @@ extern "C" {
 #include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
 #include <QDir>
+#include <QTime>
 
 const int FRAMES_MAX =1000;
 typedef float transRgbYiqMatr[9];

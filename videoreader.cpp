@@ -1,6 +1,7 @@
 #include "videoreader.h"
 
-VideoReader::VideoReader()
+VideoReader::VideoReader():
+    mode(0)
 {
     av_register_all();
     //this->frames=
@@ -298,4 +299,137 @@ Mat** VideoReader::getFrames(void)
 Mat** VideoReader::getBluredFrames(void)
 {
     return(this->blured_frames);
+}
+void VideoReader::allocateMatBuffer(int n_height, int n_width)
+{
+    this->cvMatframe=new Mat();
+    this->cvMatframe->create(n_height,n_width,CV_8UC(3));
+}
+
+void VideoReader::CVReadVideo(const char* videofilename_in)
+{
+    QTime tt;
+    cvNamedWindow("original",CV_WINDOW_FULLSCREEN);
+    Mat mat_frame ;
+    cvframe_=NULL;
+    workstady=0;
+    CvCapture* capture =cvCreateFileCapture(videofilename_in);
+    processor* Pr1=new processor();
+    int framePortion=30*5;
+    int framesRed=0;
+    int currentPortion=0;
+    while(1)
+    {
+        if(mode==2)
+        {
+
+        }
+        else
+        {
+            if(mode==1)
+            {
+                //qDebug("mode11");
+                cvframe_=/*(Mat*)*/cvQueryFrame(capture);
+                if(!cvframe_){break;}
+                Mat* mat_frame = new Mat(cvframe_);
+                /*if(framesRed>0){
+                    mat_frame.copyTo(*cvMatframe);
+                }*/
+                Pr1->AddPulseToFrames(mat_frame,Pr1->getAllFrames(),1,currentPortion);
+                IplImage cvBlframe(*mat_frame);
+                cvShowImage("original",&cvBlframe);
+                //qDebug("mode12");
+                /*if(framesRed>0){
+                    mat_frame.copyTo(*cvMatframe);
+                }*/
+                //============================================================
+                /*for(int lvl=0; lvl<4; lvl++)
+                {
+                    pyrDown(mat_frame, mat_frame, Size(mat_frame.cols/2, mat_frame.rows/2));
+                }*/
+                framesRed++;
+                currentPortion++;
+                if(currentPortion>framePortion)
+                {
+                    //Pr1->addFrame(&mat_frame);
+                    //Pr1->IncFrCounter();
+                    currentPortion=0;
+                }/*
+                else
+                {
+                   mode=1;
+                }*/
+
+
+                /*if(currentPortion<=framePortion){
+                    //addPulse from not bflag array
+                }else{
+                    Pr1->changeBufferFlag();
+                    Pr1->initFFT_IFFT();
+                    tt.start();
+                    Pr1->work(50.0/60.0,75.0/60.0,30);
+                    qDebug("time elapsed: %d ms",tt.elapsed());
+                    Pr1->clearFFT_IFFT();
+                    currentPortion=0;
+                }*/
+                delete(mat_frame);
+                char c=cvWaitKey(1);
+                if(c==27){break;}
+            }
+            else
+            {
+                cvframe_=/*(Mat*)*/cvQueryFrame(capture);
+                if(!cvframe_){break;}
+                Mat mat_frame(cvframe_);
+                if(framesRed==0){
+                const char* frn1="frame1frIpl.txt";
+                print_frame_txt(&mat_frame,frn1);}
+                if(framesRed==0)
+                {
+                    allocateMatBuffer(mat_frame.cols,mat_frame.rows);
+                }
+                if(framesRed>2){IplImage cvBlframe(mat_frame);
+                cvShowImage("original",&cvBlframe);}
+                /*if(framesRed>0){
+                    mat_frame.copyTo(*cvMatframe);
+                }*/
+                //============================================================
+                for(int lvl=0; lvl<4; lvl++)
+                {
+                    pyrDown(mat_frame, mat_frame, Size(mat_frame.cols/2, mat_frame.rows/2));
+                }
+                if(framesRed==0){Pr1->init(framePortion,mat_frame.cols,mat_frame.rows,30);
+                }
+                framesRed++;
+                currentPortion++;
+                if((currentPortion<=framePortion)&&(currentPortion==framesRed))
+                {
+                    Pr1->addFrame(&mat_frame);
+                    Pr1->IncFrCounter();
+                }
+                else
+                {
+                   mode=1;
+                   //Pr1->changeBufferFlag();
+                   Pr1->initFFT_IFFT();
+                   tt.start();
+                   Pr1->work(50.0/60.0,60.0/60.0,185);
+                   qDebug("time elapsed: %d ms",tt.elapsed());
+                   Pr1->clearFFT_IFFT();
+                   currentPortion=0;
+                }
+                //pyrUp(*cvframe_, *cvframe_, Size(cvframe_->cols*2, cvframe_->rows*2));
+
+                //============================================================
+                char c=cvWaitKey(33);
+                if(c==27){break;}
+            }
+        }
+
+
+    }
+    printf("counter=%d\n",Pr1->getFrCounter());
+    cvReleaseCapture(&capture);
+    cvDestroyWindow("original");
+    delete(Pr1);
 }
