@@ -13,20 +13,7 @@ private:
     int samplingRate;
     int debugflag;
 
-    int framecounter;
-    int bufferflag;
-
     double* AllFrames;       //data
-    double* buffer2;
-
-    //fft_tmp_data-------------
-    fftw_complex* out_fft;
-    double* in_fft;
-    fftw_plan p;
-    fftw_complex* in_ifft;
-    double* out_ifft;
-    fftw_plan p_ifft;
-    //-------------------------
 
     void FramesToVector(Mat** src, double* dst, int frWidth, int frHeight, int NofFrames);
 
@@ -41,13 +28,12 @@ private:
     void rgbBoarder(double* src, long len);
     void YIQ2RGBnormalizeColorChannels(double* srcDst, int frWidth, int frHeight, int NofFrames);
 
-
 public:
-    processor(/*, Mat** Frames*/);
+    processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, int sRate_in, Mat** Frames);
     ~processor();
     void work(double fLow, double fHight, double ampFactor);
     void VectorToFrames(double* src, Mat** dst, int frWidth, int frHeight, int NofFrames);
-    int AddPulseToFrames(Mat* frames,double *pulse, int NofFrames, int frame_number);
+    int AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, int NofFrames);
     double* getAllFrames(void);
     int getFrH(void);
     int getFrW(void);
@@ -55,16 +41,6 @@ public:
     void NearInterpolation(double* src, double* dst, int oldwidth, int oldheight, int newwidth, int newheight, int nofFr, int frameInd);
     //tmp==================
     void PrintData(double* src, long len, const char* filename);
-    void addFrame(Mat* frame);
-    void init(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, int sRate_in);
-    void IncFrCounter(void);
-    int getFrCounter(void);
-    void initFFT_IFFT(void);
-    void clearFFT_IFFT(void);
-    void changeBufferFlag(void);
-
-
-
     //=====================
 };
 

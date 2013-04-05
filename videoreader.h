@@ -2,22 +2,20 @@
 #define VIDEOREADER_H
 
 #include "Conf.h"
-#include "processor.h"
+//#include <qobject.h>
 using namespace cv;
 using namespace std;
 
 class VideoReader
 {
+
 private:
     Mat* frames[FRAMES_MAX];
     Mat* blured_frames[FRAMES_MAX];
     int NumberOfFrames;
     int frameHeight;
     int frameWidth;
-
-    int workstady;
-    Mat* cvMatframe;
-    int mode;
+    double fps;
 public:
 
     int ReadFrames(const char* videofilename_in, int pyramid_level);
@@ -32,11 +30,16 @@ public:
     Mat** getBluredFrames(void);
 
     void CVReadVideo(const char* videofilename_in);
+    void CVWriteVideo(const char* videofilename_out);
+
     /*Mat**/ IplImage* cvframe_;
-    void allocateMatBuffer(int n_height, int n_width);
+
+
 
     VideoReader();
     ~VideoReader();
+//public slots:
+    void CVOutputVideo(void);
 };
 
 #endif // VIDEOREADER_H

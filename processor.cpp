@@ -147,76 +147,21 @@ void PrintDataFrame(double* src, int num_of_fr, const char* filename, int height
 }
 //=========================================================
 
-processor::processor(/*, Mat** Frames*/):
-    debugflag(0),
-    framecounter(0),
-    bufferflag(0)
+processor::processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, int sRate_in, Mat** Frames):
+    NumberOfFrames(NumberOfFrames_in),
+    frameHeight(frameHeight_in),
+    frameWidth(frameWidth_in),
+    samplingRate(sRate_in),
+    debugflag(0)
 {
-
-    //this->FramesToVector(Frames,this->AllFrames, this->frameWidth, this->frameHeight, this->NumberOfFrames);
-}
-
-void processor::init(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, int sRate_in)
-{
-    NumberOfFrames=NumberOfFrames_in;
-    frameHeight=frameHeight_in;
-    frameWidth=frameWidth_in;
-    samplingRate=sRate_in;
     long LengthAll=this->NumberOfFrames*this->frameHeight*this->frameWidth*3;
     this->AllFrames=(double*)malloc(LengthAll*sizeof(double));
-    this->buffer2=(double*)malloc(LengthAll*sizeof(double));
+    this->FramesToVector(Frames,this->AllFrames, this->frameWidth, this->frameHeight, this->NumberOfFrames);
 }
 
 processor::~processor()
 {
     free(this->AllFrames);
-    free(this->buffer2);
-}
-
-void processor::addFrame(Mat* src)
-{
-    long rowD= NumberOfFrames*frameHeight;
-    long colD=rowD*frameWidth;
-    int invCh =0;
-    //FIXME - FIxed bug with R-B channel rotation
-    if(bufferflag==0){
-        for(int ch = 2; ch >= 0; ch--)
-        //for(int ch = 0; ch < 3; ch++)   //FIXME
-        {
-            for(int col = 0; col < frameWidth; col++)
-            {
-                for(int row = 0; row < frameHeight; row++)
-                {
-                    AllFrames[(long)invCh*colD+col*rowD+(long)row*(long)NumberOfFrames+(long)framecounter]=src->at<Vec3b>(row,col).val[ch];
-                }
-            }
-            invCh++;
-        }
-    }
-    else
-    {
-        for(int ch = 2; ch >= 0; ch--)
-        {
-            for(int col = 0; col < frameWidth; col++)
-            {
-                for(int row = 0; row < frameHeight; row++)
-                {
-                    buffer2[(long)invCh*colD+col*rowD+(long)row*(long)NumberOfFrames+(long)framecounter]=src->at<Vec3b>(row,col).val[ch];
-                }
-            }
-            invCh++;
-        }
-    }
-}
-
-void processor::IncFrCounter(void)
-{
-    framecounter++;
-}
-
-int processor::getFrCounter(void)
-{
-    return(framecounter);
 }
 
 void processor::FramesToVector(Mat** src, double* dst, int frWidth, int frHeight, int NofFrames)
@@ -409,7 +354,7 @@ void processor::work(double fLow, double fHight, double ampFactor)
     //PrintDataInt(mask,this->NumberOfFrames+1,filename_mask);
 
     //fft_header
-    /*fftw_complex* out_fft;
+    fftw_complex* out_fft;
     double* in_fft;
     in_fft = (double*)malloc(sizeof(double)*this->NumberOfFrames);
     out_fft = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*this->NumberOfFrames);
@@ -419,7 +364,7 @@ void processor::work(double fLow, double fHight, double ampFactor)
     fftw_complex* in_ifft= (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(this->NumberOfFrames));
     double* out_ifft = (double*)malloc(sizeof(double)*this->NumberOfFrames);
     fftw_plan p_ifft = fftw_plan_dft_c2r_1d(this->NumberOfFrames,in_ifft,out_ifft,FFTW_MEASURE);
-    */
+
 
     for(int i=0; i<this->frameHeight*this->frameWidth*3; i++)
     {
@@ -439,26 +384,25 @@ void processor::work(double fLow, double fHight, double ampFactor)
         //this->sumVector(&this->AllFrames[i*this->NumberOfFrames],out_ifft,&this->AllFrames[i*this->NumberOfFrames],(long)this->NumberOfFrames);
 
         this->copyVector(out_ifft, &this->AllFrames[i*this->NumberOfFrames],this->NumberOfFrames);
-        //char* f_name_fft_in2 = "fft_in2new.log";
+        //char* f_name_fft_in2 = "fft_in2.log";
         //PrintDataDb(out_ifft,this->NumberOfFrames,f_name_fft_in2);
-
 
     }
     //===========
-    /*fftw_destroy_plan(p);
+    fftw_destroy_plan(p);
     fftw_destroy_plan(p_ifft);
     fftw_free(out_fft);
     fftw_free(in_ifft);
     free(in_fft);
-    free(out_ifft);*/
-//qDebug("FFT");
+    free(out_ifft);
+
     //print fft_results
-    /*char frame_filename[35];
-    for(int i = 0; i< this->NumberOfFrames; i++)
-    {
-        sprintf(frame_filename, "PulseSignal/1fft_frame%d.log",i);
-        PrintDataFrame(this->AllFrames,this->NumberOfFrames,frame_filename,this->frameHeight,this->frameWidth);
-    }*/
+    //char frame_filename[35];
+    //for(int i = 0; i< this->NumberOfFrames; i++)
+    //{
+        //sprintf(frame_filename, "PulseSignal/fft_frame.log");
+        //PrintDataFrame(this->AllFrames,this->NumberOfFrames,frame_filename,this->frameHeight,this->frameWidth);
+    //}
 
     //this->yiq2rgb(this->AllFrames,this->frameWidth,this->frameHeight, this->NumberOfFrames);
     //this->normalize((double*)this->AllFrames,(long) this->NumberOfFrames*this->frameHeight*this->frameWidth*3,(double)1.0/255.0);
@@ -506,36 +450,46 @@ void processor::YIQ2RGBnormalizeColorChannels(double* srcDst, int frWidth, int f
     }
 }
 
-int processor::AddPulseToFrames(Mat* frames, double* pulse, int NofFrames, int frame_number)
+int processor::AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, int NofFrames)
 {
-    int FrHeight = frames->rows;
-    int FrWidth = frames->cols;
-    long LengthAll = FrWidth*FrHeight*3;
+    int FrHeight = frames[0]->rows;
+    int FrWidth = frames[0]->cols;
+    long LengthAll = /*NofFrames**/FrWidth*FrHeight*3;
     double* fullFrames = (double*)malloc(LengthAll*sizeof(double));
     double* pulseFrames = (double*)malloc(LengthAll*sizeof(double));
-    this->FramesToVector(&frames,fullFrames, FrWidth, FrHeight, 1);
-    /*if(frame_number<90){
-    char frame_filename[35];
-        sprintf(frame_filename, "BSum/frame%d.log",frame_number);
-        PrintDataFrame(fullFrames,1,frame_filename,FrHeight,FrWidth);
-    }*/
-    //qDebug("curr_frame=%d",frame_number);
+    char* Fr_from_arr = "FramesInputTxt/frame_arrYIQSumm0.log";
+    char* Fr_from_arr1 = "FramesInputTxt/frame_arrYIQSumm1.log";
+    char* Fr_from_arr2 = "FramesInputTxt/frame_arrYIQSumm2.log";
+    char* Fr_from_arr291 = "FramesInputTxt/frame_arrYIQSumm291.log";
+    for(int frame_number =0; frame_number <NofFrames;frame_number++)
+    {
+
+    this->FramesToVector(&frames[frame_number],fullFrames, FrWidth, FrHeight, 1);
+    //this->FramesToVector(&pulse[frame_number],pulseFrames, FrWidth, FrHeight, 1);
     this->normalize(fullFrames,LengthAll,255.0);
+    //this->normalize(pulseFrames,LengthAll, 255.0);
+        if(frame_number<5){this->debugflag=1;}
     this->rgb2yiq(fullFrames,FrWidth, FrHeight, 1);
-    NearInterpolation(pulse,pulseFrames,frameWidth,frameHeight,FrWidth,FrHeight,NofFrames,frame_number);
+        this->debugflag=0;
+    //this->rgb2yiq(pulseFrames,FrWidth, FrHeight, 1);
+//fix here:
+ NearInterpolation(AllFrames,pulseFrames,frameWidth,frameHeight,FrWidth,FrHeight,NofFrames,frame_number);
+//================
+    //long tmp = LengthAll/3;
     this->sumVector(fullFrames,pulseFrames,fullFrames,LengthAll);     //FIXME tmp above
+
+    //this->yiq2rgb(fullFrames,FrWidth, FrHeight, 1);
     this->YIQ2RGBnormalizeColorChannels(fullFrames,FrWidth, FrHeight, 1);
+        if(frame_number==0){print_frame_N(0,fullFrames, 1, Fr_from_arr, FrHeight, FrWidth);}
+        if(frame_number==1){print_frame_N(0,fullFrames, 1, Fr_from_arr1, FrHeight, FrWidth);}
+        if(frame_number==2){print_frame_N(0,fullFrames, 1, Fr_from_arr2, FrHeight, FrWidth);}
+        if(frame_number==290){print_frame_N(0,fullFrames, 1, Fr_from_arr291, FrHeight, FrWidth);}
     this->rgbBoarder(fullFrames,LengthAll);
     this->normalize(fullFrames,LengthAll,1.0/255.0);
-    this->VectorToFrames(fullFrames,&frames,FrWidth,FrHeight,1);
-    /*if(frame_number<90){
-    char frame_filename[35];
-        sprintf(frame_filename, "Sum/frame%d.log",frame_number);
-        PrintDataFrame(fullFrames,1,frame_filename,FrHeight,FrWidth);
-    }*/
+    this->VectorToFrames(fullFrames,&frames[frame_number],FrWidth,FrHeight,1);
+    }
     free(fullFrames);
     free(pulseFrames);
-
 }
 
 
@@ -589,32 +543,4 @@ void processor::NearInterpolation(double* src, double* dst, int oldwidth, int ol
     //_data = newData;
     //_width = newWidth;
     //_height = newHeight;
-}
-
-void processor::initFFT_IFFT(void)
-{
-    in_fft = (double*)malloc(sizeof(double)*this->NumberOfFrames);
-    out_fft = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*this->NumberOfFrames);
-    p = fftw_plan_dft_r2c_1d(this->NumberOfFrames,in_fft,out_fft,FFTW_MEASURE);
-
-    //ifft_header
-    in_ifft= (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(this->NumberOfFrames));
-    out_ifft = (double*)malloc(sizeof(double)*this->NumberOfFrames);
-    p_ifft = fftw_plan_dft_c2r_1d(this->NumberOfFrames,in_ifft,out_ifft,FFTW_MEASURE);
-}
-
-void processor::clearFFT_IFFT(void)
-{
-    fftw_destroy_plan(p);
-    fftw_destroy_plan(p_ifft);
-    fftw_free(out_fft);
-    fftw_free(in_ifft);
-    free(in_fft);
-    free(out_ifft);
-}
-
-void processor::changeBufferFlag(void)
-{
-    if(bufferflag==0){bufferflag=1;}
-    else{bufferflag=0;}
 }

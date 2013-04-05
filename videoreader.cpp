@@ -1,7 +1,6 @@
 #include "videoreader.h"
 
-VideoReader::VideoReader():
-    mode(0)
+VideoReader::VideoReader()
 {
     av_register_all();
     //this->frames=
@@ -231,7 +230,7 @@ int VideoReader::PrintFrames(void)
             sprintf(frame_filename, "frame%d.ppm", i);
             //sprintf(frame_filename_txt, "FramesInputTxt/frame%d.txt",i);
             //sprintf(frame_filenameB_txt, "FramesBlurredTxt/frame%d.txt",i);
-            imwrite(frame_filename, *(this->frames[i]));
+            imwrite(frame_filename, *(this->/*blured_*/frames[i]));
 
             //print_frame_txt(this->frames[i],frame_filename_txt);
             //if((i<5)||(i>282)){
@@ -252,7 +251,7 @@ int VideoReader::PyrUpBlured(int pyramid_level)
             for(int lvl=1; lvl<=pyramid_level;lvl++)
             {
                 //pyrUp(*image_mat, *image_mat, Size(image_mat->cols*2, image_mat->rows*2));
-                resize(*image_mat,*image_mat,Size(image_mat->cols*2, image_mat->rows*2),0,0,INTER_CUBIC);
+                cv::resize(*image_mat,*image_mat,Size(image_mat->cols*2, image_mat->rows*2),0,0,INTER_CUBIC);
             }
         }
     }
@@ -300,109 +299,50 @@ Mat** VideoReader::getBluredFrames(void)
 {
     return(this->blured_frames);
 }
-void VideoReader::allocateMatBuffer(int n_height, int n_width)
-{
-    this->cvMatframe=new Mat();
-    this->cvMatframe->create(n_height,n_width,CV_8UC(3));
-}
 
 void VideoReader::CVReadVideo(const char* videofilename_in)
 {
-    QTime tt;
-    cvNamedWindow("original",CV_WINDOW_FULLSCREEN);
-    Mat mat_frame ;
+    //QTime tt;
+    //cvNamedWindow("original",CV_WINDOW_FULLSCREEN);
     cvframe_=NULL;
-    workstady=0;
+    //workstady=0;
     CvCapture* capture =cvCreateFileCapture(videofilename_in);
-    processor* Pr1=new processor();
+    //processor* Pr1=new processor();
     int framePortion=30*5;
     int framesRed=0;
     int currentPortion=0;
     while(1)
     {
-        if(mode==2)
-        {
-
-        }
-        else
-        {
-            if(mode==1)
-            {
-                //qDebug("mode11");
                 cvframe_=/*(Mat*)*/cvQueryFrame(capture);
                 if(!cvframe_){break;}
+                frames[framesRed]= new Mat;
+                //blured_frames[framesRed]= new Mat;
                 Mat* mat_frame = new Mat(cvframe_);
-                /*if(framesRed>0){
-                    mat_frame.copyTo(*cvMatframe);
-                }*/
-                Pr1->AddPulseToFrames(mat_frame,Pr1->getAllFrames(),1,currentPortion);
-                IplImage cvBlframe(*mat_frame);
-                cvShowImage("original",&cvBlframe);
-                //qDebug("mode12");
-                /*if(framesRed>0){
-                    mat_frame.copyTo(*cvMatframe);
-                }*/
-                //============================================================
-                /*for(int lvl=0; lvl<4; lvl++)
-                {
-                    pyrDown(mat_frame, mat_frame, Size(mat_frame.cols/2, mat_frame.rows/2));
-                }*/
-                framesRed++;
-                currentPortion++;
-                if(currentPortion>framePortion)
-                {
-                    //Pr1->addFrame(&mat_frame);
-                    //Pr1->IncFrCounter();
-                    currentPortion=0;
-                }/*
-                else
-                {
-                   mode=1;
-                }*/
-
-
-                /*if(currentPortion<=framePortion){
-                    //addPulse from not bflag array
-                }else{
-                    Pr1->changeBufferFlag();
-                    Pr1->initFFT_IFFT();
-                    tt.start();
-                    Pr1->work(50.0/60.0,75.0/60.0,30);
-                    qDebug("time elapsed: %d ms",tt.elapsed());
-                    Pr1->clearFFT_IFFT();
-                    currentPortion=0;
-                }*/
-                delete(mat_frame);
-                char c=cvWaitKey(1);
-                if(c==27){break;}
-            }
-            else
-            {
-                cvframe_=/*(Mat*)*/cvQueryFrame(capture);
-                if(!cvframe_){break;}
-                Mat mat_frame(cvframe_);
-                if(framesRed==0){
+                blured_frames[framesRed]= mat_frame;
+                frames[framesRed]->create(mat_frame->rows, mat_frame->cols,CV_8UC(3));
+                mat_frame->copyTo(*frames[framesRed]);
+                /*if(framesRed==0){
                 const char* frn1="frame1frIpl.txt";
-                print_frame_txt(&mat_frame,frn1);}
-                if(framesRed==0)
+                print_frame_txt(&mat_frame,frn1);}*/
+                /*if(framesRed==0)
                 {
-                    allocateMatBuffer(mat_frame.cols,mat_frame.rows);
-                }
-                if(framesRed>2){IplImage cvBlframe(mat_frame);
-                cvShowImage("original",&cvBlframe);}
-                /*if(framesRed>0){
-                    mat_frame.copyTo(*cvMatframe);
+                    allocateMatBuffer(mat_frame->cols,mat_frame->rows);
                 }*/
+                /*if(framesRed>2){IplImage cvBlframe(mat_frame);
+                cvShowImage("original",&cvBlframe);}*/
+                //if(framesRed>0){
+                    //mat_frame->copyTo(*cvMatframe);
+                //}
                 //============================================================
                 for(int lvl=0; lvl<4; lvl++)
                 {
-                    pyrDown(mat_frame, mat_frame, Size(mat_frame.cols/2, mat_frame.rows/2));
+                    pyrDown(*mat_frame, *mat_frame, Size(mat_frame->cols/2, mat_frame->rows/2));
                 }
-                if(framesRed==0){Pr1->init(framePortion,mat_frame.cols,mat_frame.rows,30);
-                }
+                /*if(framesRed==0){Pr1->init(framePortion,mat_frame.cols,mat_frame.rows,30);
+                }*/
                 framesRed++;
                 currentPortion++;
-                if((currentPortion<=framePortion)&&(currentPortion==framesRed))
+                /*if((currentPortion<=framePortion)&&(currentPortion==framesRed))
                 {
                     Pr1->addFrame(&mat_frame);
                     Pr1->IncFrCounter();
@@ -417,19 +357,54 @@ void VideoReader::CVReadVideo(const char* videofilename_in)
                    qDebug("time elapsed: %d ms",tt.elapsed());
                    Pr1->clearFFT_IFFT();
                    currentPortion=0;
-                }
+                }*/
                 //pyrUp(*cvframe_, *cvframe_, Size(cvframe_->cols*2, cvframe_->rows*2));
 
                 //============================================================
-                char c=cvWaitKey(33);
-                if(c==27){break;}
-            }
-        }
-
+                //char c=cvWaitKey(33);
+                //if(c==27){break;}
 
     }
-    printf("counter=%d\n",Pr1->getFrCounter());
+    //printf("counter=%d\n",Pr1->getFrCounter());
+    //cvDestroyWindow("original");
+    fps= cvGetCaptureProperty(capture,CV_CAP_PROP_FPS);
+    this->frameHeight=this->blured_frames[0]->rows;
+    this->frameWidth=this->blured_frames[0]->cols;
+    this->NumberOfFrames=framesRed-10; //throw out 10 last frames
     cvReleaseCapture(&capture);
+    qDebug("Noffr = %d, frH=%d, frW= %d",NumberOfFrames,frameHeight,frameWidth);
+    //delete(Pr1);
+}
+
+void VideoReader::CVWriteVideo(const char* videofilename_out)
+{
+    CvSize frSize;
+    frSize.width=frames[0]->cols;
+    frSize.height=frames[0]->rows;
+
+    CvVideoWriter* writer = cvCreateVideoWriter("videofilename_out",
+                                                CV_FOURCC('M','J','P','G'),
+                                                fps,
+                                                frSize);
+    for(int i=0; i<NumberOfFrames; i++)
+    {
+        IplImage tmp(*frames[i]);
+        cvWriteFrame(writer,&tmp);
+    }
+    cvReleaseVideoWriter(&writer);
+}
+
+void VideoReader::CVOutputVideo(void)
+{
+    cvNamedWindow("original",CV_WINDOW_FULLSCREEN);
+    cvframe_=NULL;
+    for(int i=0; i<NumberOfFrames; i++)
+    {
+        IplImage cvframe(*frames[i]);
+        cvShowImage("original",&cvframe);
+        char c=cvWaitKey(33);
+        if(c==27){break;}
+    }
+
     cvDestroyWindow("original");
-    delete(Pr1);
 }
