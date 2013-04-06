@@ -1,6 +1,7 @@
 #include "videoreader.h"
 
-VideoReader::VideoReader()
+VideoReader::VideoReader():
+    portion(30)
 {
     av_register_all();
     //this->frames=
@@ -299,6 +300,10 @@ Mat** VideoReader::getBluredFrames(void)
 {
     return(this->blured_frames);
 }
+int VideoReader::get_portion(void)
+{
+    return(portion);
+}
 
 void VideoReader::CVReadVideo(const char* videofilename_in)
 {
@@ -374,6 +379,11 @@ void VideoReader::CVReadVideo(const char* videofilename_in)
     cvReleaseCapture(&capture);
     qDebug("Noffr = %d, frH=%d, frW= %d",NumberOfFrames,frameHeight,frameWidth);
     //delete(Pr1);
+}
+
+double VideoReader::getfps(void)
+{
+    return(fps);
 }
 
 void VideoReader::CVWriteVideo(const char* videofilename_out)

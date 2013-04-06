@@ -16,6 +16,7 @@ private:
     int frameHeight;
     int frameWidth;
     double fps;
+    int portion;
 public:
 
     int ReadFrames(const char* videofilename_in, int pyramid_level);
@@ -26,6 +27,8 @@ public:
     int getFrameHeight(void);
     int getFrameWidth(void);
     int getNumberOfFrames(void);
+    double getfps(void);
+    int get_portion(void);
     Mat** getFrames(void);
     Mat** getBluredFrames(void);
 

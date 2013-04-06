@@ -271,7 +271,7 @@ int* processor::createFreqMask(double fLow, double fHight)
         //printf("mask[%d]=%f\n",i,mask[i]);
         if((mask[i]>fLow)&&(mask[i]<fHight))
         {
-            //printf("mask[%d]=%f \t > \t fLow= %f && \t < \t fHight= %f \n",i,mask[i],fLow, fHight);
+            printf("mask[%d]=%f \t > \t fLow= %f && \t < \t fHight= %f \n",i,mask[i],fLow, fHight);
             indexes[j]=i;
             j++;
         }
@@ -372,7 +372,7 @@ void processor::work(double fLow, double fHight, double ampFactor)
         this->copyVector((double*)&this->AllFrames[i*this->NumberOfFrames],in_fft,this->NumberOfFrames);
         fftw_execute(p);
 
-        //char* f_name_fftw_test = "fftw_test.log";
+        char* f_name_fftw_test = "fftw_test.log";
         //char* f_name_fft_in = "fft_in1.log";
         //PrintDataDb(in_fft,this->NumberOfFrames,f_name_fft_in);
         //PrintDataCmx(out_fft,this->NumberOfFrames,f_name_fftw_test);
@@ -450,6 +450,54 @@ void processor::YIQ2RGBnormalizeColorChannels(double* srcDst, int frWidth, int f
     }
 }
 
+void processor::countPulseRate(double* res)
+{
+    int length1=(int)(this->NumberOfFrames);
+    if(length1>PRateInt){length1=PRateInt;}
+    int heightCenter= (int)(this->frameHeight/2);
+    int widthCenter= (int)(this->frameWidth/2);
+    int widthInterval=(int)(widthCenter/3);
+    double* buf= (double*)malloc(sizeof(double)*length1);
+    copyVector(&AllFrames[frameHeight*NumberOfFrames*(widthCenter-widthInterval)+heightCenter*NumberOfFrames],buf,length1);
+    for(int i=widthCenter-widthInterval+1; i<widthCenter+widthInterval; i++)
+    {
+        sumVector(buf,&AllFrames[frameHeight*NumberOfFrames*i+heightCenter*NumberOfFrames],buf,length1);
+    }
+    //=====find min/max
+    int flag;//=0 - down; =1 - up
+    int oldFlag=0;
+    int NofPoints=0;
+    int stady=0;
+    for(int i=0; i<length1-1; i++)
+    {
+        if(buf[i]<=buf[i+1]){
+            flag=0;
+        }else{
+            flag=1;
+        }
+        if((oldFlag!=flag)&&(i!=0))
+        {
+            qDebug("buf[%d]=%lf,buf[%d]=%lf",i,buf[i],i+1,buf[i+1]);
+                if(stady==0){stady++;}else{
+                    if(stady==1){stady++;}else{
+                        if(stady==2){stady++;}
+                    }
+                }
+        }
+        qDebug("stady[%d]=%d",i,stady);
+        if(stady>0&&stady<3)
+        {
+            NofPoints++;
+        }
+        oldFlag=flag;
+    }
+    const char* f_name1 = "Freq_pulse_buffer.txt";
+    PrintDataDb(buf,length1,f_name1);
+    free(buf);
+    *res= (double)NofPoints/(double)samplingRate;           //FIXME!
+    qDebug("nofpoints=%d",NofPoints);
+}
+
 int processor::AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, int NofFrames)
 {
     int FrHeight = frames[0]->rows;
@@ -480,10 +528,6 @@ int processor::AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, i
 
     //this->yiq2rgb(fullFrames,FrWidth, FrHeight, 1);
     this->YIQ2RGBnormalizeColorChannels(fullFrames,FrWidth, FrHeight, 1);
-        if(frame_number==0){print_frame_N(0,fullFrames, 1, Fr_from_arr, FrHeight, FrWidth);}
-        if(frame_number==1){print_frame_N(0,fullFrames, 1, Fr_from_arr1, FrHeight, FrWidth);}
-        if(frame_number==2){print_frame_N(0,fullFrames, 1, Fr_from_arr2, FrHeight, FrWidth);}
-        if(frame_number==290){print_frame_N(0,fullFrames, 1, Fr_from_arr291, FrHeight, FrWidth);}
     this->rgbBoarder(fullFrames,LengthAll);
     this->normalize(fullFrames,LengthAll,1.0/255.0);
     this->VectorToFrames(fullFrames,&frames[frame_number],FrWidth,FrHeight,1);

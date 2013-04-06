@@ -23,18 +23,28 @@ int main(int argc, char *argv[])
     //Curr_video->PrintFrames();
     int sRate=30; //TODO
 
-    processor* Pr1= new processor(Curr_video->getNumberOfFrames(),Curr_video->getFrameHeight(),Curr_video->getFrameWidth(), sRate, Curr_video->getBluredFrames());
-
-    float fr1=50.0/60.0;
-    float fr2= 78.0/60.0;
-    double ampFactor = 30.0;
+    //processor* Pr1= new processor(Curr_video->getNumberOfFrames(),Curr_video->getFrameHeight(),Curr_video->getFrameWidth(), sRate, Curr_video->getBluredFrames());
+    processor* Pr1= new processor(Curr_video->get_portion(),Curr_video->getFrameHeight(),Curr_video->getFrameWidth(), Curr_video->getfps(), Curr_video->getBluredFrames());
+    float fr1= 50.0/60.0;
+    float fr2= 70.0/60.0;
+    double ampFactor = 40.0;
     Pr1->work(fr1,fr2,ampFactor);
-
+    double rate;
+    Pr1->countPulseRate(&rate);
+    qDebug("Rate=%lf",rate);
     double* summSignal;
-    Pr1->AddPulseToFrames(Curr_video->getFrames(),summSignal,Curr_video->getNumberOfFrames());
+    //Pr1->AddPulseToFrames(Curr_video->getFrames(),summSignal,Curr_video->getNumberOfFrames());
+    int i;
+    while(Curr_video->getNumberOfFrames()>Curr_video->get_portion()*i)
+    {
+        Pr1->AddPulseToFrames(&Curr_video->getFrames()[Curr_video->get_portion()*i],summSignal,Curr_video->get_portion());
+        i++;
+    }
+    //Pr1->AddPulseToFrames(Curr_video->getFrames(),summSignal,Curr_video->get_portion());
+    //Pr1->AddPulseToFrames(&Curr_video->getFrames()[Curr_video->get_portion()+1],summSignal,Curr_video->get_portion());
     //Curr_video->PrintFrames();
     //Curr_video->CVWriteVideo(filename_out);
-    //Curr_video->CVOutputVideo();
+    Curr_video->CVOutputVideo();
     printf("success!\n");
     printf("Height = %d\n",Curr_video->getFrameHeight());
     printf("Width = %d\n",Curr_video->getFrameWidth());

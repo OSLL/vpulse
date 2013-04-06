@@ -41,6 +41,7 @@ public:
     void NearInterpolation(double* src, double* dst, int oldwidth, int oldheight, int newwidth, int newheight, int nofFr, int frameInd);
     //tmp==================
     void PrintData(double* src, long len, const char* filename);
+    void countPulseRate(double* res);
     //=====================
 };
 
