@@ -6,6 +6,7 @@
 #include<QtGui/QLabel>
 #include<QtGui/QPushButton>
 #include<QtGui/QPixmap>
+#include <QTime>
 #include "mainwindow.h"
 #ifndef INT64_C
 #define INT64_C(c) (c ## LL)

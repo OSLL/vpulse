@@ -3,6 +3,7 @@
 
 #include "Conf.h"
 //#include <qobject.h>
+#include "processor.h"
 using namespace cv;
 using namespace std;
 
@@ -34,6 +35,9 @@ public:
 
     void CVReadVideo(const char* videofilename_in);
     void CVWriteVideo(const char* videofilename_out);
+
+    void CVReadVideoRT(const char* videofilename_in, processor* Pr1);
+    void createProcessor(processor* Pr1);
 
     /*Mat**/ IplImage* cvframe_;
 

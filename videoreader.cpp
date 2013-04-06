@@ -1,7 +1,7 @@
 #include "videoreader.h"
 
 VideoReader::VideoReader():
-    portion(30)
+    portion(60)
 {
     av_register_all();
     //this->frames=
@@ -313,7 +313,7 @@ void VideoReader::CVReadVideo(const char* videofilename_in)
     //workstady=0;
     CvCapture* capture =cvCreateFileCapture(videofilename_in);
     //processor* Pr1=new processor();
-    int framePortion=30*5;
+    //int framePortion=30*5;
     int framesRed=0;
     int currentPortion=0;
     while(1)
@@ -339,10 +339,13 @@ void VideoReader::CVReadVideo(const char* videofilename_in)
                     //mat_frame->copyTo(*cvMatframe);
                 //}
                 //============================================================
+                //QTime tt;
+                //tt.start();
                 for(int lvl=0; lvl<4; lvl++)
                 {
                     pyrDown(*mat_frame, *mat_frame, Size(mat_frame->cols/2, mat_frame->rows/2));
                 }
+                //qDebug("(CVREAD)time elapsed: %d ms",tt.elapsed());
                 /*if(framesRed==0){Pr1->init(framePortion,mat_frame.cols,mat_frame.rows,30);
                 }*/
                 framesRed++;
@@ -373,6 +376,122 @@ void VideoReader::CVReadVideo(const char* videofilename_in)
     //printf("counter=%d\n",Pr1->getFrCounter());
     //cvDestroyWindow("original");
     fps= cvGetCaptureProperty(capture,CV_CAP_PROP_FPS);
+    this->frameHeight=this->blured_frames[0]->rows;
+    this->frameWidth=this->blured_frames[0]->cols;
+    this->NumberOfFrames=framesRed-10; //throw out 10 last frames
+    cvReleaseCapture(&capture);
+    qDebug("Noffr = %d, frH=%d, frW= %d",NumberOfFrames,frameHeight,frameWidth);
+    //delete(Pr1);
+}
+
+void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1)
+{
+    //QTime tt;
+    //cvNamedWindow("original",CV_WINDOW_FULLSCREEN);
+    cvframe_=NULL;
+    //workstady=0;
+    CvCapture* capture =cvCreateFileCapture(videofilename_in);
+    fps= cvGetCaptureProperty(capture,CV_CAP_PROP_FPS);
+
+    Pr1=new processor();
+    int framePortion=30*5;
+    int framesRed=0;
+    int currentPortion=0;
+    int mode =0;
+    int stady=0;
+    while(1)
+    {
+        if(mode==0)
+        {
+                cvframe_=/*(Mat*)*/cvQueryFrame(capture);
+                if(!cvframe_){break;}
+                //frames[framesRed]= new Mat;
+                //blured_frames[framesRed]= new Mat;
+                Mat* mat_frame = new Mat(cvframe_);
+                blured_frames[framesRed]= mat_frame;
+                //frames[framesRed]->create(mat_frame->rows, mat_frame->cols,CV_8UC(3));
+                //mat_frame->copyTo(*frames[framesRed]);
+                /*if(framesRed==0){
+                const char* frn1="frame1frIpl.txt";
+                print_frame_txt(&mat_frame,frn1);}*/
+                /*if(framesRed>2){IplImage cvBlframe(mat_frame);
+                cvShowImage("original",&cvBlframe);}*/
+                //if(framesRed>0){
+                    //mat_frame->copyTo(*cvMatframe);
+                //}
+                //============================================================
+                for(int lvl=0; lvl<4; lvl++)
+                {
+                    pyrDown(*mat_frame, *mat_frame, Size(mat_frame->cols/2, mat_frame->rows/2));
+                }
+                if(framesRed==0)
+                {
+                    Pr1->init(this->portion,mat_frame->cols,mat_frame->rows,fps);
+                }
+                framesRed++;
+                currentPortion++;
+                if(currentPortion==this->portion)
+                {
+                    mode=2;
+                }
+                /*if(framesRed==0){
+                }*/
+
+                /*if((currentPortion<=framePortion)&&(currentPortion==framesRed))
+                {
+                    Pr1->addFrame(&mat_frame);
+                    Pr1->IncFrCounter();
+                }
+                else
+                {
+                   mode=1;
+                   //Pr1->changeBufferFlag();
+                   Pr1->initFFT_IFFT();
+                   tt.start();
+                   Pr1->work(50.0/60.0,60.0/60.0,185);
+                   qDebug("time elapsed: %d ms",tt.elapsed());
+                   Pr1->clearFFT_IFFT();
+                   currentPortion=0;
+                }*/
+                //pyrUp(*cvframe_, *cvframe_, Size(cvframe_->cols*2, cvframe_->rows*2));
+
+                //============================================================
+                //char c=cvWaitKey(33);
+                //if(c==27){break;}
+        }else{
+            if(mode=2)
+            {
+                cvframe_=/*(Mat*)*/cvQueryFrame(capture);
+                if(!cvframe_){break;}
+                //Mat* mat_frame = new Mat(cvframe_);
+                //blured_frames[framesRed]= mat_frame;
+                //for(int lvl=0; lvl<4; lvl++)
+                //{
+                //    pyrDown(*mat_frame, *mat_frame, Size(mat_frame->cols/2, mat_frame->rows/2));
+                //}
+                //if(framesRed==0)
+                //{
+                //    Pr1->init(this->portion,mat_frame->cols,mat_frame->rows,fps);
+                //}
+                switch(stady)
+                {
+                case 0:
+                    Pr1->FramesToVector(this->getBluredFrames(),Pr1->getAllFrames(),Pr1->getFrW(),Pr1->getFrH(),Pr1->getNFr());
+                    qDebug("FramesToVec");
+                }
+                stady++;
+                framesRed++;
+                currentPortion++;
+
+                //char c=cvWaitKey(33);
+                //if(c==27){break;}
+            }
+        }
+
+    }
+    //printf("counter=%d\n",Pr1->getFrCounter());
+    //cvDestroyWindow("original");
+    //fps= cvGetCaptureProperty(capture,CV_CAP_PROP_FPS);
     this->frameHeight=this->blured_frames[0]->rows;
     this->frameWidth=this->blured_frames[0]->cols;
     this->NumberOfFrames=framesRed-10; //throw out 10 last frames
@@ -417,4 +536,19 @@ void VideoReader::CVOutputVideo(void)
     }
 
     cvDestroyWindow("original");
+}
+
+void VideoReader::createProcessor(processor* Pr1)
+{
+    //Pr1=new processor();
+    Pr1->init(this->get_portion(),this->getFrameHeight(),this->getFrameWidth(), this->getfps());
+    Pr1->FramesToVector(this->getBluredFrames(),Pr1->getAllFrames(),Pr1->getFrW(),Pr1->getFrH(),Pr1->getNFr());
+    //processor* Pr1= new processor();
+    //Pr1->init(Curr_video->get_portion(),Curr_video->getFrameHeight(),Curr_video->getFrameWidth(), Curr_video->getfps()/*,Curr_video->getBluredFrames()*/);
+    /*QTime tt;
+    tt.start();
+    Pr1->FramesToVector(Curr_video->getBluredFrames(),Pr1->getAllFrames(),Pr1->getFrW(),Pr1->getFrH(),Pr1->getNFr());
+    qDebug("time elapsed: %d ms",tt.elapsed());*/
+
+
 }

@@ -147,7 +147,7 @@ void PrintDataFrame(double* src, int num_of_fr, const char* filename, int height
 }
 //=========================================================
 
-processor::processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, int sRate_in, Mat** Frames):
+processor::processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, double sRate_in, Mat** Frames):
     NumberOfFrames(NumberOfFrames_in),
     frameHeight(frameHeight_in),
     frameWidth(frameWidth_in),
@@ -157,6 +157,21 @@ processor::processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_i
     long LengthAll=this->NumberOfFrames*this->frameHeight*this->frameWidth*3;
     this->AllFrames=(double*)malloc(LengthAll*sizeof(double));
     this->FramesToVector(Frames,this->AllFrames, this->frameWidth, this->frameHeight, this->NumberOfFrames);
+}
+processor::processor()
+{
+
+}
+
+void processor::init(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, double sRate_in/*, Mat** Frames*/)
+{
+    NumberOfFrames=NumberOfFrames_in;
+    frameHeight=frameHeight_in;
+    frameWidth=frameWidth_in;
+    samplingRate=sRate_in;
+    long LengthAll=this->NumberOfFrames*this->frameHeight*this->frameWidth*3;
+    this->AllFrames=(double*)malloc(LengthAll*sizeof(double));
+    //this->FramesToVector(Frames,this->AllFrames, this->frameWidth, this->frameHeight, this->NumberOfFrames);
 }
 
 processor::~processor()
@@ -181,6 +196,29 @@ void processor::FramesToVector(Mat** src, double* dst, int frWidth, int frHeight
                 {
                     dst[(long)invCh*colD+col*rowD+(long)row*(long)NofFrames+(long)t]=src[t]->at<Vec3b>(row,col).val[ch];
                 }
+            }
+        }
+        invCh++;
+    }
+}
+
+void processor::FrameToVector(Mat** src, double* dst, int frWidth, int frHeight, int NofFrames, int frN)
+{
+
+    long rowD= NofFrames*frHeight;
+    long colD=rowD*frWidth;
+    int invCh =0;                       //FIXME - FIxed bug with R-B channel rotation
+    for(int ch = 2; ch >= 0; ch--)
+    //for(int ch = 0; ch < 3; ch++)   //FIXME
+    {
+        for(int col = 0; col < frWidth; col++)
+        {
+            for(int row = 0; row < frHeight; row++)
+            {
+                //for(int t = 0; t < NofFrames; t++)
+                //{
+                    dst[(long)invCh*colD+col*rowD+(long)row*(long)NofFrames+(long)frN]=src[frN]->at<Vec3b>(row,col).val[ch];
+                //}
             }
         }
         invCh++;
@@ -250,6 +288,11 @@ void processor::yiq2rgb(double* srcDst, int frWidth, int frHeight, int NofFrames
         srcDst[ch+chD] = tmp[0]*yiq2rgbCoef[3] + tmp[1]*yiq2rgbCoef[4] + tmp[2]*yiq2rgbCoef[5];
         srcDst[ch+chD*2] = tmp[0]*yiq2rgbCoef[6] + tmp[1]*yiq2rgbCoef[7] + tmp[2]*yiq2rgbCoef[8];
     }
+}
+
+double processor::getFPS(void)
+{
+    return(samplingRate);
 }
 
 void processor::normalize(double* src, long len, double factor)

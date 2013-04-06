@@ -10,12 +10,12 @@ private:
     int NumberOfFrames;
     int frameHeight;
     int frameWidth;
-    int samplingRate;
+    double samplingRate;
     int debugflag;
 
     double* AllFrames;       //data
 
-    void FramesToVector(Mat** src, double* dst, int frWidth, int frHeight, int NofFrames);
+
 
     void rgb2yiq(double* srcDst, int frWidth, int frHeight, int NofFrames);
     void yiq2rgb(double* srcDst, int frWidth, int frHeight, int NofFrames);
@@ -29,15 +29,21 @@ private:
     void YIQ2RGBnormalizeColorChannels(double* srcDst, int frWidth, int frHeight, int NofFrames);
 
 public:
-    processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, int sRate_in, Mat** Frames);
+    processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, double sRate_in, Mat** Frames);
     ~processor();
+    processor();
+    void init(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, double sRate_in/*, Mat** Frames*/);
+    void FrameToVector(Mat** src, double* dst, int frWidth, int frHeight, int NofFrames, int frN);
+
     void work(double fLow, double fHight, double ampFactor);
     void VectorToFrames(double* src, Mat** dst, int frWidth, int frHeight, int NofFrames);
+    void FramesToVector(Mat** src, double* dst, int frWidth, int frHeight, int NofFrames);
     int AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, int NofFrames);
     double* getAllFrames(void);
     int getFrH(void);
     int getFrW(void);
     int getNFr(void);
+    double getFPS(void);
     void NearInterpolation(double* src, double* dst, int oldwidth, int oldheight, int newwidth, int newheight, int nofFr, int frameInd);
     //tmp==================
     void PrintData(double* src, long len, const char* filename);

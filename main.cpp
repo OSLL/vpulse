@@ -1,9 +1,27 @@
 #include "Conf.h"
 #include "videoreader.h"
 #include "processor.h"
+#include <QTime>
 
 using namespace cv;
 using namespace std;
+
+void PrintDataDb_(double* src, long len, const char* filename)
+{
+        FILE * stream;
+                if ((stream=fopen(filename, "w")) != 0)
+        {
+
+            for(long curr_id1 = 0; curr_id1 <= len-1; curr_id1++)
+            {
+
+                fprintf(stream, "%ld. \t %lf",curr_id1, src[curr_id1]);
+                fputc('\n',stream);
+
+            };
+        }
+        fclose(stream);
+}
 
 
 
@@ -22,9 +40,28 @@ int main(int argc, char *argv[])
     //Curr_video->ReadFrames(filename_in,4);
     //Curr_video->PrintFrames();
     int sRate=30; //TODO
-
+    //qDebug("SRate=%lf",Curr_video->getfps());
     //processor* Pr1= new processor(Curr_video->getNumberOfFrames(),Curr_video->getFrameHeight(),Curr_video->getFrameWidth(), sRate, Curr_video->getBluredFrames());
-    processor* Pr1= new processor(Curr_video->get_portion(),Curr_video->getFrameHeight(),Curr_video->getFrameWidth(), Curr_video->getfps(), Curr_video->getBluredFrames());
+    //processor* Pr1= new processor(Curr_video->get_portion(),Curr_video->getFrameHeight(),Curr_video->getFrameWidth(), Curr_video->getfps(), Curr_video->getBluredFrames());
+
+
+    //processor* Pr1= new processor();
+    //Pr1->init(Curr_video->get_portion(),Curr_video->getFrameHeight(),Curr_video->getFrameWidth(), Curr_video->getfps()/*,Curr_video->getBluredFrames()*/);
+    /*QTime tt;
+    tt.start();
+    Pr1->FramesToVector(Curr_video->getBluredFrames(),Pr1->getAllFrames(),Pr1->getFrW(),Pr1->getFrH(),Pr1->getNFr());
+    qDebug("time elapsed: %d ms",tt.elapsed());*/
+    processor* Pr1=new processor();
+    Curr_video->createProcessor(Pr1);
+
+
+    /*for(int g=0; g<Pr1->getNFr();g++)
+    {
+        Pr1->FrameToVector(Curr_video->getBluredFrames(),Pr1->getAllFrames(),Pr1->getFrW(),Pr1->getFrH(),Pr1->getNFr(),g);
+    }*/
+    //const char* fnfn = "tmp2.txt";
+    //PrintDataDb_(Pr1->getAllFrames(),Pr1->getNFr()*Pr1->getFrH()*Pr1->getFrW()*3,fnfn);
+
     float fr1= 50.0/60.0;
     float fr2= 70.0/60.0;
     double ampFactor = 40.0;
