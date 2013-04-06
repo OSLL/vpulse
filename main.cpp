@@ -36,7 +36,10 @@ int main(int argc, char *argv[])
     char* filename_out = "face2";
 
     VideoReader* Curr_video=new VideoReader();
-    Curr_video->CVReadVideo(filename_in);
+    processor* Pr1=new processor();
+    //Pr1->init(90,37,33,30);
+    //Curr_video->CVReadVideo(filename_in);
+    Curr_video->CVReadVideoRT(filename_in,Pr1);
     //Curr_video->ReadFrames(filename_in,4);
     //Curr_video->PrintFrames();
     int sRate=30; //TODO
@@ -47,12 +50,12 @@ int main(int argc, char *argv[])
 
     //processor* Pr1= new processor();
     //Pr1->init(Curr_video->get_portion(),Curr_video->getFrameHeight(),Curr_video->getFrameWidth(), Curr_video->getfps()/*,Curr_video->getBluredFrames()*/);
-    /*QTime tt;
-    tt.start();
-    Pr1->FramesToVector(Curr_video->getBluredFrames(),Pr1->getAllFrames(),Pr1->getFrW(),Pr1->getFrH(),Pr1->getNFr());
-    qDebug("time elapsed: %d ms",tt.elapsed());*/
-    processor* Pr1=new processor();
-    Curr_video->createProcessor(Pr1);
+    //QTime tt;
+    //tt.start();
+    //Pr1->FramesToVector(Curr_video->getBluredFrames(),Pr1->getAllFrames(),Pr1->getFrW(),Pr1->getFrH(),Pr1->getNFr());
+    //qDebug("time elapsed: %d ms",tt.elapsed());
+    //processor* Pr1=new processor();
+    //Curr_video->createProcessor(Pr1);
 
 
     /*for(int g=0; g<Pr1->getNFr();g++)
@@ -71,8 +74,9 @@ int main(int argc, char *argv[])
     qDebug("Rate=%lf",rate);
     double* summSignal;
     //Pr1->AddPulseToFrames(Curr_video->getFrames(),summSignal,Curr_video->getNumberOfFrames());
-    int i;
-    while(Curr_video->getNumberOfFrames()>Curr_video->get_portion()*i)
+    Curr_video->tmpframereader(filename_in);
+    int i=0;
+    while(Curr_video->getNumberOfFrames()>Curr_video->get_portion()*(i+1))
     {
         Pr1->AddPulseToFrames(&Curr_video->getFrames()[Curr_video->get_portion()*i],summSignal,Curr_video->get_portion());
         i++;

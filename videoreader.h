@@ -38,6 +38,7 @@ public:
 
     void CVReadVideoRT(const char* videofilename_in, processor* Pr1);
     void createProcessor(processor* Pr1);
+    void tmpframereader(const char* videofilename_in);
 
     /*Mat**/ IplImage* cvframe_;
 

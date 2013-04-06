@@ -548,20 +548,20 @@ int processor::AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, i
     long LengthAll = /*NofFrames**/FrWidth*FrHeight*3;
     double* fullFrames = (double*)malloc(LengthAll*sizeof(double));
     double* pulseFrames = (double*)malloc(LengthAll*sizeof(double));
-    char* Fr_from_arr = "FramesInputTxt/frame_arrYIQSumm0.log";
-    char* Fr_from_arr1 = "FramesInputTxt/frame_arrYIQSumm1.log";
-    char* Fr_from_arr2 = "FramesInputTxt/frame_arrYIQSumm2.log";
-    char* Fr_from_arr291 = "FramesInputTxt/frame_arrYIQSumm291.log";
+    //char* Fr_from_arr = "FramesInputTxt/frame_arrYIQSumm0.log";
+    //char* Fr_from_arr1 = "FramesInputTxt/frame_arrYIQSumm1.log";
+    //char* Fr_from_arr2 = "FramesInputTxt/frame_arrYIQSumm2.log";
+    //char* Fr_from_arr291 = "FramesInputTxt/frame_arrYIQSumm291.log";
     for(int frame_number =0; frame_number <NofFrames;frame_number++)
     {
-
+        //qDebug("frameN=%d",frame_number);
     this->FramesToVector(&frames[frame_number],fullFrames, FrWidth, FrHeight, 1);
     //this->FramesToVector(&pulse[frame_number],pulseFrames, FrWidth, FrHeight, 1);
     this->normalize(fullFrames,LengthAll,255.0);
     //this->normalize(pulseFrames,LengthAll, 255.0);
-        if(frame_number<5){this->debugflag=1;}
+        //if(frame_number<5){this->debugflag=1;}
     this->rgb2yiq(fullFrames,FrWidth, FrHeight, 1);
-        this->debugflag=0;
+        //this->debugflag=0;
     //this->rgb2yiq(pulseFrames,FrWidth, FrHeight, 1);
 //fix here:
  NearInterpolation(AllFrames,pulseFrames,frameWidth,frameHeight,FrWidth,FrHeight,NofFrames,frame_number);
@@ -573,6 +573,7 @@ int processor::AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, i
     this->YIQ2RGBnormalizeColorChannels(fullFrames,FrWidth, FrHeight, 1);
     this->rgbBoarder(fullFrames,LengthAll);
     this->normalize(fullFrames,LengthAll,1.0/255.0);
+ //qDebug("frameN=%d",frame_number);
     this->VectorToFrames(fullFrames,&frames[frame_number],FrWidth,FrHeight,1);
     }
     free(fullFrames);

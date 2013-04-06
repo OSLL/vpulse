@@ -1,7 +1,7 @@
 #include "videoreader.h"
 
 VideoReader::VideoReader():
-    portion(60)
+    portion(90)
 {
     av_register_all();
     //this->frames=
@@ -392,9 +392,7 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1)
     //workstady=0;
     CvCapture* capture =cvCreateFileCapture(videofilename_in);
     fps= cvGetCaptureProperty(capture,CV_CAP_PROP_FPS);
-
-    Pr1=new processor();
-    int framePortion=30*5;
+    //int framePortion=30*5;
     int framesRed=0;
     int currentPortion=0;
     int mode =0;
@@ -426,11 +424,11 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1)
                 }
                 if(framesRed==0)
                 {
-                    Pr1->init(this->portion,mat_frame->cols,mat_frame->rows,fps);
+                    Pr1->init(this->get_portion(),blured_frames[0]->rows,blured_frames[0]->cols,this->getfps());
                 }
                 framesRed++;
                 currentPortion++;
-                if(currentPortion==this->portion)
+                if(currentPortion==this->portion+1)
                 {
                     mode=2;
                 }
@@ -477,7 +475,7 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1)
                 {
                 case 0:
                     Pr1->FramesToVector(this->getBluredFrames(),Pr1->getAllFrames(),Pr1->getFrW(),Pr1->getFrH(),Pr1->getNFr());
-                    qDebug("FramesToVec");
+                    qDebug("FramesToVec, FRRed=%d",framesRed);
                 }
                 stady++;
                 framesRed++;
@@ -505,6 +503,27 @@ double VideoReader::getfps(void)
     return(fps);
 }
 
+void VideoReader::tmpframereader(const char* videofilename_in)
+{
+    cvframe_=NULL;
+    CvCapture* capture =cvCreateFileCapture(videofilename_in);
+    int framesRed=0;
+    int currentPortion=0;
+    while(1)
+    {
+                cvframe_=cvQueryFrame(capture);
+                if(!cvframe_){break;}
+                frames[framesRed]= new Mat;
+                Mat* mat_frame = new Mat(cvframe_);
+                frames[framesRed]->create(mat_frame->rows, mat_frame->cols,CV_8UC(3));
+                mat_frame->copyTo(*frames[framesRed]);
+                framesRed++;
+                currentPortion++;
+    }
+    cvReleaseCapture(&capture);
+}
+
+
 void VideoReader::CVWriteVideo(const char* videofilename_out)
 {
     CvSize frSize;
@@ -526,10 +545,12 @@ void VideoReader::CVWriteVideo(const char* videofilename_out)
 void VideoReader::CVOutputVideo(void)
 {
     cvNamedWindow("original",CV_WINDOW_FULLSCREEN);
-    cvframe_=NULL;
+    //cvframe_=NULL;
     for(int i=0; i<NumberOfFrames; i++)
     {
+        //qDebug("i=%d",i);
         IplImage cvframe(*frames[i]);
+        //qDebug("i=%d",i);
         cvShowImage("original",&cvframe);
         char c=cvWaitKey(33);
         if(c==27){break;}
