@@ -324,6 +324,7 @@ int* processor::createFreqMask(double fLow, double fHight)
     {
         indexes[k]=0;
     }
+    free(mask);
     return(indexes);
 }
 
@@ -372,7 +373,29 @@ void processor::sumVector(double* src1, double *src2, double* dst, long len)
     }
 }
 
+void processor::InitFFT_IFFT_createFrMask(double fLow, double fHight)
+{
+    mask = createFreqMask(fLow,fHight);
+    in_fft = (double*)malloc(sizeof(double)*this->NumberOfFrames);
+    out_fft = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*this->NumberOfFrames);
+    /*fftw_plan*/ p = fftw_plan_dft_r2c_1d(this->NumberOfFrames,in_fft,out_fft,FFTW_MEASURE);
 
+    //ifft_header
+    /*fftw_complex**/ in_ifft= (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(this->NumberOfFrames));
+    /*double**/ out_ifft = (double*)malloc(sizeof(double)*this->NumberOfFrames);
+    /*fftw_plan*/ p_ifft = fftw_plan_dft_c2r_1d(this->NumberOfFrames,in_ifft,out_ifft,FFTW_MEASURE);
+}
+
+void processor::ClearFFT_IFFT_mask(void)
+{
+    free(mask);
+    fftw_destroy_plan(p);
+    fftw_destroy_plan(p_ifft);
+    fftw_free(out_fft);
+    fftw_free(in_ifft);
+    free(in_fft);
+    free(out_ifft);
+}
 
 void processor::work(double fLow, double fHight, double ampFactor)
 {
@@ -386,36 +409,29 @@ void processor::work(double fLow, double fHight, double ampFactor)
     print_frame_N(1,AllFrames, this->NumberOfFrames, Fr_from_arr1, this->frameHeight, this->frameWidth);
     print_frame_N(2,AllFrames, this->NumberOfFrames, Fr_from_arr2, this->frameHeight, this->frameWidth);
     print_frame_N(290,AllFrames, this->NumberOfFrames, Fr_from_arr291, this->frameHeight, this->frameWidth);*/
-    this->normalize((double*)this->AllFrames,(long) this->NumberOfFrames*this->frameHeight*this->frameWidth*3,255.0);
-    this->rgb2yiq(this->AllFrames,this->frameWidth,this->frameHeight, this->NumberOfFrames);
+ //   this->normalize((double*)this->AllFrames,(long) this->NumberOfFrames*this->frameHeight*this->frameWidth*3,255.0);
+ //   this->rgb2yiq(this->AllFrames,this->frameWidth,this->frameHeight, this->NumberOfFrames);
     printf("flow= %f, fHight= %f \n", fLow, fHight);
     //char* GDownStack_file = "GDownStack.log";
     //PrintDataFrame(this->AllFrames, this->NumberOfFrames, GDownStack_file, this->frameHeight, this->frameWidth);
-    int* mask=createFreqMask(fLow,fHight);
+//    int* mask=createFreqMask(fLow,fHight);
 
     //const char* filename_mask = "fr_mask.log";
     //PrintDataInt(mask,this->NumberOfFrames+1,filename_mask);
 
     //fft_header
-    fftw_complex* out_fft;
-    double* in_fft;
-    in_fft = (double*)malloc(sizeof(double)*this->NumberOfFrames);
-    out_fft = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*this->NumberOfFrames);
-    fftw_plan p = fftw_plan_dft_r2c_1d(this->NumberOfFrames,in_fft,out_fft,FFTW_MEASURE);
-
-    //ifft_header
-    fftw_complex* in_ifft= (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(this->NumberOfFrames));
-    double* out_ifft = (double*)malloc(sizeof(double)*this->NumberOfFrames);
-    fftw_plan p_ifft = fftw_plan_dft_c2r_1d(this->NumberOfFrames,in_ifft,out_ifft,FFTW_MEASURE);
-
-
-    for(int i=0; i<this->frameHeight*this->frameWidth*3; i++)
+//    fftw_complex* out_fft;
+//    double* in_fft;
+   // this->InitFFT_IFFT_createFrMask(fLow,fHight);
+    //QTime tt;
+    //tt.start();
+    /*for(int i=0; i<this->frameHeight*this->frameWidth*3; i++)
     {
         //fft:compute
         this->copyVector((double*)&this->AllFrames[i*this->NumberOfFrames],in_fft,this->NumberOfFrames);
         fftw_execute(p);
 
-        char* f_name_fftw_test = "fftw_test.log";
+        //char* f_name_fftw_test = "fftw_test.log";
         //char* f_name_fft_in = "fft_in1.log";
         //PrintDataDb(in_fft,this->NumberOfFrames,f_name_fft_in);
         //PrintDataCmx(out_fft,this->NumberOfFrames,f_name_fftw_test);
@@ -430,15 +446,16 @@ void processor::work(double fLow, double fHight, double ampFactor)
         //char* f_name_fft_in2 = "fft_in2.log";
         //PrintDataDb(out_ifft,this->NumberOfFrames,f_name_fft_in2);
 
-    }
+    }*/
+    //qDebug("(FFT)time elapsed: %d ms",tt.elapsed());
     //===========
-    fftw_destroy_plan(p);
+    /*fftw_destroy_plan(p);
     fftw_destroy_plan(p_ifft);
     fftw_free(out_fft);
     fftw_free(in_ifft);
     free(in_fft);
-    free(out_ifft);
-
+    free(out_ifft);*/
+ //   ClearFFT_IFFT_mask();
     //print fft_results
     //char frame_filename[35];
     //for(int i = 0; i< this->NumberOfFrames; i++)
@@ -631,4 +648,39 @@ void processor::NearInterpolation(double* src, double* dst, int oldwidth, int ol
     //_data = newData;
     //_width = newWidth;
     //_height = newHeight;
+}
+
+fftw_complex* processor::get_out_fft(void)
+{
+    return(out_fft);
+}
+
+fftw_complex* processor::get_in_ifft(void)
+{
+    return(in_ifft);
+}
+
+double* processor::get_in_fft(void)
+{
+    return(in_fft);
+}
+
+double* processor::get_out_ifft(void)
+{
+    return(out_ifft);
+}
+
+fftw_plan* processor::get_fft_plan(void)
+{
+    return(&p);
+}
+
+fftw_plan* processor::get_ifft_plan(void)
+{
+    return(&p_ifft);
+}
+
+int* processor::get_mask(void)
+{
+    return(mask);
 }

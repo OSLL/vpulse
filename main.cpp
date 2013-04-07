@@ -37,9 +37,12 @@ int main(int argc, char *argv[])
 
     VideoReader* Curr_video=new VideoReader();
     processor* Pr1=new processor();
+    float fr1= 50.0/60.0;
+    float fr2= 70.0/60.0;
+    double ampFactor = 40.0;
     //Pr1->init(90,37,33,30);
     //Curr_video->CVReadVideo(filename_in);
-    Curr_video->CVReadVideoRT(filename_in,Pr1);
+    Curr_video->CVReadVideoRT(filename_in,Pr1,fr1,fr2,ampFactor);
     //Curr_video->ReadFrames(filename_in,4);
     //Curr_video->PrintFrames();
     int sRate=30; //TODO
@@ -65,10 +68,8 @@ int main(int argc, char *argv[])
     //const char* fnfn = "tmp2.txt";
     //PrintDataDb_(Pr1->getAllFrames(),Pr1->getNFr()*Pr1->getFrH()*Pr1->getFrW()*3,fnfn);
 
-    float fr1= 50.0/60.0;
-    float fr2= 70.0/60.0;
-    double ampFactor = 40.0;
-    Pr1->work(fr1,fr2,ampFactor);
+
+    //Pr1->work(fr1,fr2,ampFactor);
     double rate;
     Pr1->countPulseRate(&rate);
     qDebug("Rate=%lf",rate);

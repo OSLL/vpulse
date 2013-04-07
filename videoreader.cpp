@@ -384,7 +384,7 @@ void VideoReader::CVReadVideo(const char* videofilename_in)
     //delete(Pr1);
 }
 
-void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1)
+void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, double fLow, double fHight,double ampFactor)
 {
     //QTime tt;
     //cvNamedWindow("original",CV_WINDOW_FULLSCREEN);
@@ -461,21 +461,88 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1)
             {
                 cvframe_=/*(Mat*)*/cvQueryFrame(capture);
                 if(!cvframe_){break;}
-                //Mat* mat_frame = new Mat(cvframe_);
-                //blured_frames[framesRed]= mat_frame;
-                //for(int lvl=0; lvl<4; lvl++)
-                //{
-                //    pyrDown(*mat_frame, *mat_frame, Size(mat_frame->cols/2, mat_frame->rows/2));
-                //}
-                //if(framesRed==0)
-                //{
-                //    Pr1->init(this->portion,mat_frame->cols,mat_frame->rows,fps);
-                //}
+                QTime tt;
                 switch(stady)
                 {
                 case 0:
                     Pr1->FramesToVector(this->getBluredFrames(),Pr1->getAllFrames(),Pr1->getFrW(),Pr1->getFrH(),Pr1->getNFr());
                     qDebug("FramesToVec, FRRed=%d",framesRed);
+                    break;
+                case 1:
+                    //QTime tt1;
+                    //tt1.start();
+                    Pr1->normalize(Pr1->getAllFrames(),(long) Pr1->getNFr()*Pr1->getFrH()*Pr1->getFrW()*3,255.0);
+                    Pr1->rgb2yiq(Pr1->getAllFrames(),Pr1->getFrW(),Pr1->getFrH(), Pr1->getNFr());
+                    //qDebug("time elapsed: %d ms",tt1.elapsed());
+                    break;
+                case 2:
+                    Pr1->InitFFT_IFFT_createFrMask(fLow,fHight);
+                    break;
+                /*case 3:
+                    //QTime tt;
+                    tt.start();
+                    for(int i=0; i<Pr1->getFrH()*Pr1->getFrW()*3; i++)
+                    {
+                        //fft:compute
+                        Pr1->copyVector((double*)&Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->get_in_fft(),Pr1->getNFr());
+                        fftw_execute(*Pr1->get_fft_plan());
+                        //ifft:compute
+                        Pr1->applyMask(Pr1->get_out_fft(),Pr1->get_in_ifft(),Pr1->get_mask(),Pr1->getNFr()/2+1);
+                        fftw_execute(*Pr1->get_ifft_plan());
+                        //Pr1->normalize(Pr1->get_out_ifft(), (long)Pr1->getNFr(),(double)Pr1->getNFr()/ampFactor);
+                        Pr1->copyVector(Pr1->get_out_ifft(), &Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->getNFr());
+                    }
+                    qDebug("(FFT)time elapsed: %d ms",tt.elapsed());
+                    break;*/
+                case 3:
+                    tt.start();
+                    for(int i=0; i<Pr1->getFrH()*Pr1->getFrW(); i++)
+                    {
+                        //fft:compute
+                        Pr1->copyVector((double*)&Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->get_in_fft(),Pr1->getNFr());
+                        fftw_execute(*Pr1->get_fft_plan());
+                        //ifft:compute
+                        Pr1->applyMask(Pr1->get_out_fft(),Pr1->get_in_ifft(),Pr1->get_mask(),Pr1->getNFr()/2+1);
+                        fftw_execute(*Pr1->get_ifft_plan());
+                        //Pr1->normalize(Pr1->get_out_ifft(), (long)Pr1->getNFr(),(double)Pr1->getNFr()/ampFactor);
+                        Pr1->copyVector(Pr1->get_out_ifft(), &Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->getNFr());
+                    }
+                    qDebug("(FFT)time elapsed: %d ms",tt.elapsed());
+                    break;
+                case 4:
+                    tt.start();
+                    for(int i=Pr1->getFrH()*Pr1->getFrW(); i<Pr1->getFrH()*Pr1->getFrW()*2; i++)
+                    {
+                        //fft:compute
+                        Pr1->copyVector((double*)&Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->get_in_fft(),Pr1->getNFr());
+                        fftw_execute(*Pr1->get_fft_plan());
+                        //ifft:compute
+                        Pr1->applyMask(Pr1->get_out_fft(),Pr1->get_in_ifft(),Pr1->get_mask(),Pr1->getNFr()/2+1);
+                        fftw_execute(*Pr1->get_ifft_plan());
+                        //Pr1->normalize(Pr1->get_out_ifft(), (long)Pr1->getNFr(),(double)Pr1->getNFr()/ampFactor);
+                        Pr1->copyVector(Pr1->get_out_ifft(), &Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->getNFr());
+                    }
+                    qDebug("(FFT)time elapsed: %d ms",tt.elapsed());
+                    break;
+                case 5:
+                    tt.start();
+                    for(int i=Pr1->getFrH()*Pr1->getFrW()*2; i<Pr1->getFrH()*Pr1->getFrW()*3; i++)
+                    {
+                        //fft:compute
+                        Pr1->copyVector((double*)&Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->get_in_fft(),Pr1->getNFr());
+                        fftw_execute(*Pr1->get_fft_plan());
+                        //ifft:compute
+                        Pr1->applyMask(Pr1->get_out_fft(),Pr1->get_in_ifft(),Pr1->get_mask(),Pr1->getNFr()/2+1);
+                        fftw_execute(*Pr1->get_ifft_plan());
+                        //Pr1->normalize(Pr1->get_out_ifft(), (long)Pr1->getNFr(),(double)Pr1->getNFr()/ampFactor);
+                        Pr1->copyVector(Pr1->get_out_ifft(), &Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->getNFr());
+                    }
+                    qDebug("(FFT)time elapsed: %d ms",tt.elapsed());
+                    break;
+                case 6:
+                    Pr1->normalize(Pr1->getAllFrames(), (long)Pr1->getNFr()*Pr1->getFrH()*Pr1->getFrW()*3,(double)Pr1->getNFr()/ampFactor);
+                    Pr1->ClearFFT_IFFT_mask();
+                    break;
                 }
                 stady++;
                 framesRed++;

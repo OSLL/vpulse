@@ -36,7 +36,7 @@ public:
     void CVReadVideo(const char* videofilename_in);
     void CVWriteVideo(const char* videofilename_out);
 
-    void CVReadVideoRT(const char* videofilename_in, processor* Pr1);
+    void CVReadVideoRT(const char* videofilename_in, processor* Pr1, double fLow, double fHight,double ampFactor);
     void createProcessor(processor* Pr1);
     void tmpframereader(const char* videofilename_in);
 
