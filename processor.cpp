@@ -379,10 +379,9 @@ void processor::InitFFT_IFFT_createFrMask(double fLow, double fHight)
     in_fft = (double*)malloc(sizeof(double)*this->NumberOfFrames);
     out_fft = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*this->NumberOfFrames);
     /*fftw_plan*/ p = fftw_plan_dft_r2c_1d(this->NumberOfFrames,in_fft,out_fft,FFTW_MEASURE);
-
     //ifft_header
     /*fftw_complex**/ in_ifft= (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(this->NumberOfFrames));
-    /*double**/ out_ifft = (double*)malloc(sizeof(double)*this->NumberOfFrames);
+/*double**/ out_ifft = (double*)malloc(sizeof(double)*this->NumberOfFrames);
     /*fftw_plan*/ p_ifft = fftw_plan_dft_c2r_1d(this->NumberOfFrames,in_ifft,out_ifft,FFTW_MEASURE);
 }
 

@@ -40,6 +40,8 @@ public:
     void createProcessor(processor* Pr1);
     void tmpframereader(const char* videofilename_in);
 
+    void CVReadVideoCAM(void);
+
     /*Mat**/ IplImage* cvframe_;
 
 

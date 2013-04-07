@@ -38,10 +38,11 @@ int main(int argc, char *argv[])
     VideoReader* Curr_video=new VideoReader();
     processor* Pr1=new processor();
     float fr1= 50.0/60.0;
-    float fr2= 70.0/60.0;
+    float fr2= 60.0/60.0;
     double ampFactor = 40.0;
     //Pr1->init(90,37,33,30);
-    //Curr_video->CVReadVideo(filename_in);
+    //Curr_video->CVReadVideoCAM();
+    //Curr_video->CVReadVideoCAM(filename_in);
     Curr_video->CVReadVideoRT(filename_in,Pr1,fr1,fr2,ampFactor);
     //Curr_video->ReadFrames(filename_in,4);
     //Curr_video->PrintFrames();
@@ -70,6 +71,8 @@ int main(int argc, char *argv[])
 
 
     //Pr1->work(fr1,fr2,ampFactor);
+
+
     double rate;
     Pr1->countPulseRate(&rate);
     qDebug("Rate=%lf",rate);
@@ -82,6 +85,8 @@ int main(int argc, char *argv[])
         Pr1->AddPulseToFrames(&Curr_video->getFrames()[Curr_video->get_portion()*i],summSignal,Curr_video->get_portion());
         i++;
     }
+
+
     //Pr1->AddPulseToFrames(Curr_video->getFrames(),summSignal,Curr_video->get_portion());
     //Pr1->AddPulseToFrames(&Curr_video->getFrames()[Curr_video->get_portion()+1],summSignal,Curr_video->get_portion());
     //Curr_video->PrintFrames();

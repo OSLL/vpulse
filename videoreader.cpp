@@ -384,25 +384,75 @@ void VideoReader::CVReadVideo(const char* videofilename_in)
     //delete(Pr1);
 }
 
+void VideoReader::CVReadVideoCAM(void)
+{
+    //QTime tt;
+    //cvNamedWindow("original1",CV_WINDOW_FULLSCREEN);
+    cvframe_=NULL;
+    //workstady=0;
+    CvCapture* capture = cvCreateCameraCapture(CV_CAP_ANY);
+    assert(capture);
+    //int framePortion=30*5;
+    int framesRed=0;
+    int currentPortion=0;
+    while(1)
+    {
+                cvframe_=/*(Mat*)*/cvQueryFrame(capture);
+                if(!cvframe_){break;}
+                cvShowImage("original1",cvframe_);
+                frames[framesRed]= new Mat;
+                //blured_frames[framesRed]= new Mat;
+                Mat* mat_frame = new Mat(cvframe_);
+                blured_frames[framesRed]= mat_frame;
+                frames[framesRed]->create(mat_frame->rows, mat_frame->cols,CV_8UC(3));
+                mat_frame->copyTo(*frames[framesRed]);
+                for(int lvl=0; lvl<4; lvl++)
+                {
+                    pyrDown(*mat_frame, *mat_frame, Size(mat_frame->cols/2, mat_frame->rows/2));
+                }
+
+                framesRed++;
+                currentPortion++;
+                char c=cvWaitKey(33);
+                if(c==27){break;}
+    }
+    cvDestroyWindow("original1");
+    fps= cvGetCaptureProperty(capture,CV_CAP_PROP_FPS);
+    this->frameHeight=this->blured_frames[0]->rows;
+    this->frameWidth=this->blured_frames[0]->cols;
+    this->NumberOfFrames=framesRed-20; //throw out 10 last frames
+    cvReleaseCapture(&capture);
+    qDebug("Noffr = %d, frH=%d, frW= %d",NumberOfFrames,frameHeight,frameWidth);
+}
+
 void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, double fLow, double fHight,double ampFactor)
 {
     //QTime tt;
-    //cvNamedWindow("original",CV_WINDOW_FULLSCREEN);
+
     cvframe_=NULL;
     //workstady=0;
     CvCapture* capture =cvCreateFileCapture(videofilename_in);
-    fps= cvGetCaptureProperty(capture,CV_CAP_PROP_FPS);
+    //CvCapture* capture = cvCreateCameraCapture(CV_CAP_ANY);
+    //assert(capture);
+    //fps= cvGetCaptureProperty(capture,CV_CAP_PROP_FPS);       FIXME!
+    fps=30;
     //int framePortion=30*5;
     int framesRed=0;
     int currentPortion=0;
     int mode =0;
     int stady=0;
+    int wait_=0;
+    cvNamedWindow("original1",CV_WINDOW_AUTOSIZE);
+QTime tt;
     while(1)
     {
+
         if(mode==0)
         {
                 cvframe_=/*(Mat*)*/cvQueryFrame(capture);
                 if(!cvframe_){break;}
+                tt.start();
+                //qDebug("framesRed=%d",framesRed);
                 //frames[framesRed]= new Mat;
                 //blured_frames[framesRed]= new Mat;
                 Mat* mat_frame = new Mat(cvframe_);
@@ -412,8 +462,8 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, do
                 /*if(framesRed==0){
                 const char* frn1="frame1frIpl.txt";
                 print_frame_txt(&mat_frame,frn1);}*/
-                /*if(framesRed>2){IplImage cvBlframe(mat_frame);
-                cvShowImage("original",&cvBlframe);}*/
+                //IplImage cvBlframe(*mat_frame);
+                cvShowImage("original1",cvframe_);
                 //if(framesRed>0){
                     //mat_frame->copyTo(*cvMatframe);
                 //}
@@ -425,6 +475,10 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, do
                 if(framesRed==0)
                 {
                     Pr1->init(this->get_portion(),blured_frames[0]->rows,blured_frames[0]->cols,this->getfps());
+                    /*qDebug("rows=%d",blured_frames[0]->rows);
+                    qDebug("cols=%d",blured_frames[0]->cols);
+                    qDebug("portion=%d",portion);
+                    qDebug("fps=%d",fps);*/
                 }
                 framesRed++;
                 currentPortion++;
@@ -432,41 +486,27 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, do
                 {
                     mode=2;
                 }
-                /*if(framesRed==0){
-                }*/
-
-                /*if((currentPortion<=framePortion)&&(currentPortion==framesRed))
-                {
-                    Pr1->addFrame(&mat_frame);
-                    Pr1->IncFrCounter();
-                }
-                else
-                {
-                   mode=1;
-                   //Pr1->changeBufferFlag();
-                   Pr1->initFFT_IFFT();
-                   tt.start();
-                   Pr1->work(50.0/60.0,60.0/60.0,185);
-                   qDebug("time elapsed: %d ms",tt.elapsed());
-                   Pr1->clearFFT_IFFT();
-                   currentPortion=0;
-                }*/
-                //pyrUp(*cvframe_, *cvframe_, Size(cvframe_->cols*2, cvframe_->rows*2));
-
-                //============================================================
-                //char c=cvWaitKey(33);
-                //if(c==27){break;}
+                wait_ = 33-(int)tt.elapsed();
+                qDebug("wait=%d",wait_);
+                if(wait_<=0){wait_=1;}
+                char c=cvWaitKey(wait_);
+                if(c==27){break;}
         }else{
             if(mode=2)
             {
+
                 cvframe_=/*(Mat*)*/cvQueryFrame(capture);
-                if(!cvframe_){break;}
-                QTime tt;
+
+                if(!cvframe_){qDebug("END!");cvDestroyWindow("original1");break;}
+                //IplImage cvBlframe(*mat_frame);
+                cvShowImage("original1",cvframe_);
+                tt.start();
+                //QTime tt;
                 switch(stady)
                 {
                 case 0:
                     Pr1->FramesToVector(this->getBluredFrames(),Pr1->getAllFrames(),Pr1->getFrW(),Pr1->getFrH(),Pr1->getNFr());
-                    qDebug("FramesToVec, FRRed=%d",framesRed);
+                    //qDebug("FramesToVec, FRRed=%d",framesRed);
                     break;
                 case 1:
                     //QTime tt1;
@@ -478,24 +518,8 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, do
                 case 2:
                     Pr1->InitFFT_IFFT_createFrMask(fLow,fHight);
                     break;
-                /*case 3:
-                    //QTime tt;
-                    tt.start();
-                    for(int i=0; i<Pr1->getFrH()*Pr1->getFrW()*3; i++)
-                    {
-                        //fft:compute
-                        Pr1->copyVector((double*)&Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->get_in_fft(),Pr1->getNFr());
-                        fftw_execute(*Pr1->get_fft_plan());
-                        //ifft:compute
-                        Pr1->applyMask(Pr1->get_out_fft(),Pr1->get_in_ifft(),Pr1->get_mask(),Pr1->getNFr()/2+1);
-                        fftw_execute(*Pr1->get_ifft_plan());
-                        //Pr1->normalize(Pr1->get_out_ifft(), (long)Pr1->getNFr(),(double)Pr1->getNFr()/ampFactor);
-                        Pr1->copyVector(Pr1->get_out_ifft(), &Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->getNFr());
-                    }
-                    qDebug("(FFT)time elapsed: %d ms",tt.elapsed());
-                    break;*/
                 case 3:
-                    tt.start();
+                    //tt.start();
                     for(int i=0; i<Pr1->getFrH()*Pr1->getFrW(); i++)
                     {
                         //fft:compute
@@ -507,10 +531,10 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, do
                         //Pr1->normalize(Pr1->get_out_ifft(), (long)Pr1->getNFr(),(double)Pr1->getNFr()/ampFactor);
                         Pr1->copyVector(Pr1->get_out_ifft(), &Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->getNFr());
                     }
-                    qDebug("(FFT)time elapsed: %d ms",tt.elapsed());
+                    //qDebug("(FFT)time elapsed: %d ms",tt.elapsed());
                     break;
                 case 4:
-                    tt.start();
+                    //tt.start();
                     for(int i=Pr1->getFrH()*Pr1->getFrW(); i<Pr1->getFrH()*Pr1->getFrW()*2; i++)
                     {
                         //fft:compute
@@ -522,10 +546,10 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, do
                         //Pr1->normalize(Pr1->get_out_ifft(), (long)Pr1->getNFr(),(double)Pr1->getNFr()/ampFactor);
                         Pr1->copyVector(Pr1->get_out_ifft(), &Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->getNFr());
                     }
-                    qDebug("(FFT)time elapsed: %d ms",tt.elapsed());
+                    //qDebug("(FFT)time elapsed: %d ms",tt.elapsed());
                     break;
                 case 5:
-                    tt.start();
+                    //tt.start();
                     for(int i=Pr1->getFrH()*Pr1->getFrW()*2; i<Pr1->getFrH()*Pr1->getFrW()*3; i++)
                     {
                         //fft:compute
@@ -537,25 +561,30 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, do
                         //Pr1->normalize(Pr1->get_out_ifft(), (long)Pr1->getNFr(),(double)Pr1->getNFr()/ampFactor);
                         Pr1->copyVector(Pr1->get_out_ifft(), &Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->getNFr());
                     }
-                    qDebug("(FFT)time elapsed: %d ms",tt.elapsed());
+                    //qDebug("(FFT)time elapsed: %d ms",tt.elapsed());
                     break;
                 case 6:
                     Pr1->normalize(Pr1->getAllFrames(), (long)Pr1->getNFr()*Pr1->getFrH()*Pr1->getFrW()*3,(double)Pr1->getNFr()/ampFactor);
                     Pr1->ClearFFT_IFFT_mask();
                     break;
+                case 7:
+                    double rate;
+                    //Pr1->countPulseRate(&rate);
+                    //qDebug("Rate=%lf",rate);
                 }
                 stady++;
                 framesRed++;
                 currentPortion++;
-
-                //char c=cvWaitKey(33);
-                //if(c==27){break;}
+                wait_ = 33-tt.elapsed();
+                if(wait_<=0){wait_=1;}
+                char c=cvWaitKey(wait_);
+                if(c==27){break;}
             }
         }
-
+qDebug("(mode%d)time elapsed: %d ms",mode,tt.elapsed());
     }
     //printf("counter=%d\n",Pr1->getFrCounter());
-    //cvDestroyWindow("original");
+    cvDestroyWindow("original1");
     //fps= cvGetCaptureProperty(capture,CV_CAP_PROP_FPS);
     this->frameHeight=this->blured_frames[0]->rows;
     this->frameWidth=this->blured_frames[0]->cols;
@@ -611,13 +640,11 @@ void VideoReader::CVWriteVideo(const char* videofilename_out)
 
 void VideoReader::CVOutputVideo(void)
 {
-    cvNamedWindow("original",CV_WINDOW_FULLSCREEN);
+    cvNamedWindow("original",CV_WINDOW_AUTOSIZE);
     //cvframe_=NULL;
-    for(int i=0; i<NumberOfFrames; i++)
+    for(int i=0; i<NumberOfFrames/*portion*/; i++)
     {
-        //qDebug("i=%d",i);
         IplImage cvframe(*frames[i]);
-        //qDebug("i=%d",i);
         cvShowImage("original",&cvframe);
         char c=cvWaitKey(33);
         if(c==27){break;}
