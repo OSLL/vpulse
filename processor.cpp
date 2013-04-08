@@ -195,6 +195,7 @@ void processor::FramesToVector(Mat** src, double* dst, int frWidth, int frHeight
                 for(int t = 0; t < NofFrames; t++)
                 {
                     dst[(long)invCh*colD+col*rowD+(long)row*(long)NofFrames+(long)t]=src[t]->at<Vec3b>(row,col).val[ch];
+
                 }
             }
         }
@@ -301,6 +302,10 @@ void processor::normalize(double* src, long len, double factor)
     {
         src[i]=src[i]/factor;
     }
+}
+void processor::setFPS(double val)
+{
+    this->samplingRate=val;
 }
 
 int* processor::createFreqMask(double fLow, double fHight)
@@ -477,6 +482,16 @@ void processor::rgbBoarder(double* src, long len)
         {src[i]=0;}
     }
 }
+void processor::rgbBoarder2(double* src, long len)
+{
+    for(long i=0; i<len; i++)
+    {
+        if(src[i]>255.0)
+        {src[i]=255.0;}
+        if(src[i]<0.0)
+        {src[i]=0.0;}
+    }
+}
 
 void processor::YIQ2RGBnormalizeColorChannels(double* srcDst, int frWidth, int frHeight, int NofFrames)
 {
@@ -501,6 +516,37 @@ void processor::YIQ2RGBnormalizeColorChannels(double* srcDst, int frWidth, int f
             normfactor=srcDst[ch+chD*2];
         }
         if(normfactor > 1.0)
+        {
+            srcDst[ch]=srcDst[ch]/normfactor;
+            srcDst[ch+chD]=srcDst[ch+chD]/normfactor;
+            srcDst[ch+chD*2]=srcDst[ch+chD*2]/normfactor;
+        }
+    }
+}
+
+void processor::YIQ2RGBnormalizeColorChannels2(double* srcDst, int frWidth, int frHeight, int NofFrames)
+{
+    long chD=(long)NofFrames*(long)frHeight*(long)frWidth;
+    double tmp[3];                      //FIXME BUG FIXED
+    for(long ch = 0; ch <chD; ch++)
+    {
+        tmp[0]=srcDst[ch];
+        tmp[1]=srcDst[ch+chD];
+        tmp[2]=srcDst[ch+chD*2];
+        srcDst[ch] = tmp[0]*yiq2rgbCoef[0] + tmp[1]*yiq2rgbCoef[1] + tmp[2]*yiq2rgbCoef[2];
+        srcDst[ch+chD] = tmp[0]*yiq2rgbCoef[3] + tmp[1]*yiq2rgbCoef[4] + tmp[2]*yiq2rgbCoef[5];
+        srcDst[ch+chD*2] = tmp[0]*yiq2rgbCoef[6] + tmp[1]*yiq2rgbCoef[7] + tmp[2]*yiq2rgbCoef[8];
+        double normfactor = 255.0;
+        if(srcDst[ch] > 255.0){
+            normfactor=srcDst[ch];
+        }
+        if((srcDst[ch+chD] > 255.0)&&(srcDst[ch+chD]>normfactor)){
+            normfactor=srcDst[ch+chD];
+        }
+        if((srcDst[ch+chD*2] > 255.0)&&(srcDst[ch+chD*2]>normfactor)){
+            normfactor=srcDst[ch+chD*2];
+        }
+        if(normfactor > 255.0)
         {
             srcDst[ch]=srcDst[ch]/normfactor;
             srcDst[ch+chD]=srcDst[ch+chD]/normfactor;
@@ -536,25 +582,39 @@ void processor::countPulseRate(double* res)
         }
         if((oldFlag!=flag)&&(i!=0))
         {
-            qDebug("buf[%d]=%lf,buf[%d]=%lf",i,buf[i],i+1,buf[i+1]);
+            //qDebug("buf[%d]=%lf,buf[%d]=%lf",i,buf[i],i+1,buf[i+1]);
                 if(stady==0){stady++;}else{
                     if(stady==1){stady++;}else{
                         if(stady==2){stady++;}
                     }
                 }
         }
-        qDebug("stady[%d]=%d",i,stady);
+        //qDebug("stady[%d]=%d",i,stady);
+        //qDebug("buf[%d]=%lf,buf[%d]=%lf",i,buf[i],i+1,buf[i+1]);
         if(stady>0&&stady<3)
         {
             NofPoints++;
         }
         oldFlag=flag;
     }
-    const char* f_name1 = "Freq_pulse_buffer.txt";
-    PrintDataDb(buf,length1,f_name1);
+    //const char* f_name1 = "Freq_pulse_buffer.txt";
+    //PrintDataDb(buf,length1,f_name1);
     free(buf);
     *res= (double)NofPoints/(double)samplingRate;           //FIXME!
-    qDebug("nofpoints=%d",NofPoints);
+    //qDebug("nofpoints=%d",NofPoints);
+}
+
+void processor::render(Mat* frames,long LengthAll, int FrHeight, int FrWidth, int NofFrames, int frame_number)
+{
+    FramesToVector(&frames,fullFrames, FrWidth, FrHeight, 1);
+    normalize(fullFrames,LengthAll,255.0);
+    rgb2yiq(fullFrames,FrWidth, FrHeight, 1);
+    NearInterpolation(AllFrames,pulseFrames,frameWidth,frameHeight,FrWidth,FrHeight,NofFrames,frame_number);
+    sumVector(fullFrames,pulseFrames,fullFrames,LengthAll);     //FIXME tmp above
+    YIQ2RGBnormalizeColorChannels(fullFrames,FrWidth, FrHeight, 1);
+    rgbBoarder(fullFrames,LengthAll);
+    normalize(fullFrames,LengthAll,1.0/255.0);
+    VectorToFrames(fullFrames,&frames,FrWidth,FrHeight,1);
 }
 
 int processor::AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, int NofFrames)
@@ -562,15 +622,55 @@ int processor::AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, i
     int FrHeight = frames[0]->rows;
     int FrWidth = frames[0]->cols;
     long LengthAll = /*NofFrames**/FrWidth*FrHeight*3;
-    double* fullFrames = (double*)malloc(LengthAll*sizeof(double));
-    double* pulseFrames = (double*)malloc(LengthAll*sizeof(double));
+    for(int frame_number =0; frame_number <NofFrames;frame_number++)
+    {
+        render(frames[frame_number],LengthAll,FrHeight,FrWidth,NofFrames,frame_number);
+    }
+    //free(fullFrames);
+    //free(pulseFrames);
+}
+
+void processor::AllocRendBuff(long lengthAll, long NofFr_)
+{
+    fullFrames = (double*)malloc(lengthAll*sizeof(double));
+    pulseFrames = (double*)malloc(lengthAll*NofFr_*sizeof(double));
+}
+
+void processor::freeRendBuff(void)
+{
+    free(fullFrames);
+    free(pulseFrames);
+}
+
+double* processor::get_pulse_frames(void)
+{
+    return(this->pulseFrames);
+}
+
+//=================================
+int processor::AddPulseToFrames2(Mat** frames/*, Mat** pulse*/, double* result, int NofFrames)
+{
+    int FrHeight = frames[0]->rows;
+    int FrWidth = frames[0]->cols;
+    long LengthAll = /*NofFrames**/FrWidth*FrHeight*3;
+    //fullFrames = (double*)malloc(LengthAll*sizeof(double));
+    //pulseFrames = (double*)malloc(LengthAll*NofFrames*sizeof(double));
+    //this->AllocRendBuff(LengthAll,NofFrames);
     //char* Fr_from_arr = "FramesInputTxt/frame_arrYIQSumm0.log";
     //char* Fr_from_arr1 = "FramesInputTxt/frame_arrYIQSumm1.log";
     //char* Fr_from_arr2 = "FramesInputTxt/frame_arrYIQSumm2.log";
+
     //char* Fr_from_arr291 = "FramesInputTxt/frame_arrYIQSumm291.log";
+    /*for(int frame_number =0; frame_number <NofFrames;frame_number++)
+    {
+        NearInterpolation2(AllFrames,pulseFrames,frameWidth,frameHeight,FrWidth,FrHeight,NofFrames,frame_number);
+    }*/
+    //this->normalize(pulseFrames,LengthAll*NofFrames,1.0/255.0);
     for(int frame_number =0; frame_number <NofFrames;frame_number++)
     {
         //qDebug("frameN=%d",frame_number);
+        QTime tt;
+        tt.start();
     this->FramesToVector(&frames[frame_number],fullFrames, FrWidth, FrHeight, 1);
     //this->FramesToVector(&pulse[frame_number],pulseFrames, FrWidth, FrHeight, 1);
     this->normalize(fullFrames,LengthAll,255.0);
@@ -580,22 +680,58 @@ int processor::AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, i
         //this->debugflag=0;
     //this->rgb2yiq(pulseFrames,FrWidth, FrHeight, 1);
 //fix here:
- NearInterpolation(AllFrames,pulseFrames,frameWidth,frameHeight,FrWidth,FrHeight,NofFrames,frame_number);
+        //qDebug("time elapsed1: %d ms",tt.elapsed()); tt.start();
+ //NearInterpolation(AllFrames,pulseFrames,frameWidth,frameHeight,FrWidth,FrHeight,NofFrames,frame_number);
 //================
     //long tmp = LengthAll/3;
-    this->sumVector(fullFrames,pulseFrames,fullFrames,LengthAll);     //FIXME tmp above
-
-    //this->yiq2rgb(fullFrames,FrWidth, FrHeight, 1);
+    //this->sumVector_frame_arr(fullFrames,pulseFrames,fullFrames,LengthAll);     //FIXME tmp above
+   qDebug("time elapsed1: %d ms",tt.elapsed()); tt.start();
+        this->sumVector_frame_arr(fullFrames,pulseFrames,fullFrames,FrHeight,FrWidth,NumberOfFrames,frame_number);
+   qDebug("time elapsed3: %d ms",tt.elapsed());tt.start();
+   //this->yiq2rgb(fullFrames,FrWidth, FrHeight, 1);
     this->YIQ2RGBnormalizeColorChannels(fullFrames,FrWidth, FrHeight, 1);
-    this->rgbBoarder(fullFrames,LengthAll);
+  //qDebug("time elapsed3: %d ms",tt.elapsed());tt.start();
+ this->rgbBoarder(fullFrames,LengthAll);
+   //qDebug("time elapsed4: %d ms",tt.elapsed());tt.start();
     this->normalize(fullFrames,LengthAll,1.0/255.0);
+    //qDebug("time elapsed5: %d ms",tt.elapsed());tt.start();
  //qDebug("frameN=%d",frame_number);
     this->VectorToFrames(fullFrames,&frames[frame_number],FrWidth,FrHeight,1);
+         qDebug("time elapsed6: %d ms",tt.elapsed());
     }
     free(fullFrames);
     free(pulseFrames);
 }
 
+void processor::sumVector_frame_arr(double* src1, double *src2, double* dst, int frH, int frW, int NofFr_,int frameNumber)
+{
+
+    long rowD= (long)NofFr_*(long)frH;
+    long colD=(long)rowD*(long)frW;
+    long fhfw=frH*frW;
+    for(int ch = 0; ch < 3; ch++)
+    {
+        for(int col = 0; col < frW; col++)
+        {
+            for(int row = 0; row < frH; row++)
+            {
+                    dst[ch*fhfw+ col*frH+row] += src2[ch*colD+col*rowD+row*NofFr_+frameNumber];
+            }
+        }
+    }
+
+    //for(int cx = 0; cx < newwidth; cx++)
+    //{
+     //   for(int cy = 0; cy < newheight; cy++)
+     //   {
+     //       int pixel = (cx * (newheight/**nofFr*/)) + (cy/**nofFr*/)/*+frameInd*/;
+     //       long nearestMatch =  (((long)(cx ) * (oldheight*nofFr)) + ((long)(cy)*nofFr) )+frameInd;
+    //        dst[pixel] =  src[nearestMatch];
+    //        dst[pixel + newheight*newwidth/**nofFr*/] =  src[nearestMatch + oldheight*oldwidth*nofFr];
+    //        dst[pixel + newheight*newwidth*2/**nofFr*/] =  src[nearestMatch + oldheight*oldwidth*nofFr*2];
+    //    }
+   // }
+}
 
 double* processor::getAllFrames(void)
 {
@@ -647,6 +783,25 @@ void processor::NearInterpolation(double* src, double* dst, int oldwidth, int ol
     //_data = newData;
     //_width = newWidth;
     //_height = newHeight;
+}
+void processor::NearInterpolation2(double* src, double* dst, int oldwidth, int oldheight, int newwidth, int newheight, int nofFr,int frameInd)
+{
+    double scalewidth =  (double)newwidth / (double)oldwidth;
+    double scaleheight = (double)newheight / (double)oldheight;
+
+    for(int cx = 0; cx < newwidth; cx++)
+    {
+        for(int cy = 0; cy < newheight; cy++)
+        {
+            long pixel = ((long)cx * (long)((long)newheight*nofFr)) + ((long)cy*(long)nofFr)+frameInd;
+            long nearestMatch =  (((long)(cx / scalewidth) * (oldheight*nofFr)) + ((long)(cy / scaleheight)*nofFr) )+frameInd;
+            //printf("pixel = %d\n",pixel);
+            //printf("near = %d\n",nearestMatch);
+            dst[pixel] =  src[nearestMatch];
+            dst[pixel + newheight*newwidth*nofFr] =  src[nearestMatch + oldheight*oldwidth*nofFr];
+            dst[pixel + newheight*newwidth*2*nofFr] =  src[nearestMatch + oldheight*oldwidth*nofFr*2];
+        }
+    }
 }
 
 fftw_complex* processor::get_out_fft(void)

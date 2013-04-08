@@ -434,8 +434,8 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, do
     CvCapture* capture =cvCreateFileCapture(videofilename_in);
     //CvCapture* capture = cvCreateCameraCapture(CV_CAP_ANY);
     //assert(capture);
-    //fps= cvGetCaptureProperty(capture,CV_CAP_PROP_FPS);       FIXME!
-    fps=30;
+    this->fps= cvGetCaptureProperty(capture,CV_CAP_PROP_FPS);       //FIXME!
+    //fps=30;
     //int framePortion=30*5;
     int framesRed=0;
     int currentPortion=0;
@@ -459,9 +459,10 @@ QTime tt;
                 blured_frames[framesRed]= mat_frame;
                 //frames[framesRed]->create(mat_frame->rows, mat_frame->cols,CV_8UC(3));
                 //mat_frame->copyTo(*frames[framesRed]);
-                /*if(framesRed==0){
-                const char* frn1="frame1frIpl.txt";
-                print_frame_txt(&mat_frame,frn1);}*/
+                if(framesRed==0){
+                    this->frameHeightOr=this->blured_frames[0]->rows;
+                    this->frameWidthOr=this->blured_frames[0]->cols;
+                    LengthRend=frameHeightOr*frameWidthOr*3;}
                 //IplImage cvBlframe(*mat_frame);
                 cvShowImage("original1",cvframe_);
                 //if(framesRed>0){
@@ -474,11 +475,11 @@ QTime tt;
                 }
                 if(framesRed==0)
                 {
-                    Pr1->init(this->get_portion(),blured_frames[0]->rows,blured_frames[0]->cols,this->getfps());
-                    /*qDebug("rows=%d",blured_frames[0]->rows);
+                    Pr1->init(this->get_portion(),blured_frames[0]->rows,blured_frames[0]->cols,fps);
+                   /* qDebug("rows=%d",blured_frames[0]->rows);
                     qDebug("cols=%d",blured_frames[0]->cols);
                     qDebug("portion=%d",portion);
-                    qDebug("fps=%d",fps);*/
+                    qDebug("fps1=%lf",Pr1->getFPS());*/
                 }
                 framesRed++;
                 currentPortion++;
@@ -492,7 +493,11 @@ QTime tt;
                 char c=cvWaitKey(wait_);
                 if(c==27){break;}
         }else{
-            if(mode=2)
+            if(mode==1)
+            {
+
+            }
+            if(mode==2)
             {
 
                 cvframe_=/*(Mat*)*/cvQueryFrame(capture);
@@ -569,8 +574,22 @@ QTime tt;
                     break;
                 case 7:
                     double rate;
-                    //Pr1->countPulseRate(&rate);
-                    //qDebug("Rate=%lf",rate);
+                    Pr1->countPulseRate(&rate);
+                    qDebug("Rate=%lf",rate);
+                case 8:
+                    Pr1->AllocRendBuff(LengthRend,Pr1->getNFr());
+                    break;
+                /*case 9:
+                    for(int frame_number =0; frame_number <Pr1->getNFr();frame_number++)
+                    {
+                        Pr1->NearInterpolation2(Pr1->getAllFrames(),Pr1->get_pulse_frames(),Pr1->getFrW(),Pr1->getFrH(),frameWidthOr,frameHeightOr,Pr1->getNFr(),frame_number);
+                    }
+                    break;*/
+                case 9:
+                    mode =1;
+                    break;
+                case 11:
+                    break;
                 }
                 stady++;
                 framesRed++;

@@ -32,13 +32,13 @@ int main(int argc, char *argv[])
     w.show();
 
 
-    char* filename_in = "face.mp4";
+    char* filename_in = "palm.MOV";
     char* filename_out = "face2";
 
     VideoReader* Curr_video=new VideoReader();
     processor* Pr1=new processor();
     float fr1= 50.0/60.0;
-    float fr2= 60.0/60.0;
+    float fr2= 80.0/60.0;
     double ampFactor = 40.0;
     //Pr1->init(90,37,33,30);
     //Curr_video->CVReadVideoCAM();
@@ -73,19 +73,22 @@ int main(int argc, char *argv[])
     //Pr1->work(fr1,fr2,ampFactor);
 
 
-    double rate;
-    Pr1->countPulseRate(&rate);
-    qDebug("Rate=%lf",rate);
+    //double rate;
+    ///Pr1->countPulseRate(&rate);
+    //qDebug("Rate=%lf",rate);
     double* summSignal;
     //Pr1->AddPulseToFrames(Curr_video->getFrames(),summSignal,Curr_video->getNumberOfFrames());
     Curr_video->tmpframereader(filename_in);
     int i=0;
     while(Curr_video->getNumberOfFrames()>Curr_video->get_portion()*(i+1))
     {
+        QTime tt;
+        tt.start();
         Pr1->AddPulseToFrames(&Curr_video->getFrames()[Curr_video->get_portion()*i],summSignal,Curr_video->get_portion());
+        qDebug("time elapsed: %d ms",tt.elapsed());
         i++;
     }
-
+    Pr1->freeRendBuff();
 
     //Pr1->AddPulseToFrames(Curr_video->getFrames(),summSignal,Curr_video->get_portion());
     //Pr1->AddPulseToFrames(&Curr_video->getFrames()[Curr_video->get_portion()+1],summSignal,Curr_video->get_portion());

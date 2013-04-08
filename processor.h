@@ -25,6 +25,9 @@ private:
     fftw_plan p_ifft;
     //frequency_mask
     int* mask;
+    //rendering buffers:
+    double* fullFrames;
+    double* pulseFrames;
 
 
 
@@ -38,9 +41,13 @@ public:
     void applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long len);
     void sumVector(double* src1, double *src2, double* dst, long len);
     void rgbBoarder(double* src, long len);
+    void rgbBoarder2(double* src, long len);
     void YIQ2RGBnormalizeColorChannels(double* srcDst, int frWidth, int frHeight, int NofFrames);
+    void YIQ2RGBnormalizeColorChannels2(double* srcDst, int frWidth, int frHeight, int NofFrames);
     void InitFFT_IFFT_createFrMask(double fLow, double fHight);
     void ClearFFT_IFFT_mask(void);
+    void AllocRendBuff(long lengthAll, long NofFr_);
+    void freeRendBuff(void);
 
     processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, double sRate_in, Mat** Frames);
     ~processor();
@@ -52,12 +59,17 @@ public:
     void VectorToFrames(double* src, Mat** dst, int frWidth, int frHeight, int NofFrames);
     void FramesToVector(Mat** src, double* dst, int frWidth, int frHeight, int NofFrames);
     int AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, int NofFrames);
+    int AddPulseToFrames2(Mat** frames/*, Mat** pulse*/, double* result, int NofFrames);
     double* getAllFrames(void);
     int getFrH(void);
     int getFrW(void);
     int getNFr(void);
     double getFPS(void);
+    double* get_pulse_frames(void);
+    void sumVector_frame_arr(double* src1, double *src2, double* dst, int frH, int frW, int NofFr_,int frameNumber);
+    void setFPS(double val);
     void NearInterpolation(double* src, double* dst, int oldwidth, int oldheight, int newwidth, int newheight, int nofFr, int frameInd);
+    void NearInterpolation2(double* src, double* dst, int oldwidth, int oldheight, int newwidth, int newheight, int nofFr,int frameInd);
     //tmp==================
     void PrintData(double* src, long len, const char* filename);
     void countPulseRate(double* res);
@@ -69,6 +81,7 @@ public:
     fftw_plan* get_fft_plan(void);
     fftw_plan* get_ifft_plan(void);
     int* get_mask(void);
+    void render(Mat* frames,long LengthAll, int FrHeight, int FrWidth, int NofFrames, int frame_number);
 
 };
 

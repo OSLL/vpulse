@@ -18,6 +18,9 @@ private:
     int frameWidth;
     double fps;
     int portion;
+    int frameHeightOr;
+    int frameWidthOr;
+    long LengthRend;
 public:
 
     int ReadFrames(const char* videofilename_in, int pyramid_level);
