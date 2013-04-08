@@ -37,8 +37,8 @@ int main(int argc, char *argv[])
 
     VideoReader* Curr_video=new VideoReader();
     processor* Pr1=new processor();
-    float fr1= 50.0/60.0;
-    float fr2= 80.0/60.0;
+    float fr1= 45.0/60.0;
+    float fr2= 90.0/60.0;
     double ampFactor = 40.0;
     //Pr1->init(90,37,33,30);
     //Curr_video->CVReadVideoCAM();
@@ -78,23 +78,23 @@ int main(int argc, char *argv[])
     //qDebug("Rate=%lf",rate);
     double* summSignal;
     //Pr1->AddPulseToFrames(Curr_video->getFrames(),summSignal,Curr_video->getNumberOfFrames());
-    Curr_video->tmpframereader(filename_in);
-    int i=0;
-    while(Curr_video->getNumberOfFrames()>Curr_video->get_portion()*(i+1))
+    //Curr_video->tmpframereader(filename_in);
+    //int i=0;
+    /*while(Curr_video->getNumberOfFrames()>Curr_video->get_portion()*(i+1))
     {
         QTime tt;
         tt.start();
         Pr1->AddPulseToFrames(&Curr_video->getFrames()[Curr_video->get_portion()*i],summSignal,Curr_video->get_portion());
         qDebug("time elapsed: %d ms",tt.elapsed());
         i++;
-    }
+    }*/
     Pr1->freeRendBuff();
 
     //Pr1->AddPulseToFrames(Curr_video->getFrames(),summSignal,Curr_video->get_portion());
     //Pr1->AddPulseToFrames(&Curr_video->getFrames()[Curr_video->get_portion()+1],summSignal,Curr_video->get_portion());
     //Curr_video->PrintFrames();
     //Curr_video->CVWriteVideo(filename_out);
-    Curr_video->CVOutputVideo();
+    //Curr_video->CVOutputVideo();
     printf("success!\n");
     printf("Height = %d\n",Curr_video->getFrameHeight());
     printf("Width = %d\n",Curr_video->getFrameWidth());

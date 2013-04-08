@@ -431,17 +431,18 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, do
 
     cvframe_=NULL;
     //workstady=0;
-    CvCapture* capture =cvCreateFileCapture(videofilename_in);
-    //CvCapture* capture = cvCreateCameraCapture(CV_CAP_ANY);
-    //assert(capture);
-    this->fps= cvGetCaptureProperty(capture,CV_CAP_PROP_FPS);       //FIXME!
-    //fps=30;
+    //CvCapture* capture =cvCreateFileCapture(videofilename_in);
+    CvCapture* capture = cvCreateCameraCapture(CV_CAP_ANY);
+    assert(capture);
+    //this->fps= cvGetCaptureProperty(capture,CV_CAP_PROP_FPS);       //FIXME!
+    fps=28;
     //int framePortion=30*5;
     int framesRed=0;
     int currentPortion=0;
     int mode =0;
     int stady=0;
     int wait_=0;
+    int portion_ind=0;
     cvNamedWindow("original1",CV_WINDOW_AUTOSIZE);
 QTime tt;
     while(1)
@@ -495,7 +496,34 @@ QTime tt;
         }else{
             if(mode==1)
             {
-
+                cvframe_=/*(Mat*)*/cvQueryFrame(capture);
+                if(!cvframe_){break;}
+                tt.start();
+                //qDebug("framesRed=%d",framesRed);
+                //frames[framesRed]= new Mat;
+                //blured_frames[framesRed]= new Mat;
+                Mat* mat_frame = new Mat(cvframe_);
+                blured_frames[framesRed]= mat_frame;
+                //frames[framesRed]->create(mat_frame->rows, mat_frame->cols,CV_8UC(3));
+                //mat_frame->copyTo(*frames[framesRed]);
+                Pr1->render(blured_frames[framesRed],LengthRend,frameHeightOr,frameWidthOr,portion,portion_ind);
+                //IplImage cvBlframe(*mat_frame);
+                cvShowImage("original1",cvframe_);
+                portion_ind++;
+                if(portion_ind>=portion){
+                    portion_ind=0;
+                }
+                //if(framesRed>0){
+                    //mat_frame->copyTo(*cvMatframe);
+                //}
+                //============================================================
+                framesRed++;
+                //currentPortion++;
+                wait_ = 33-(int)tt.elapsed();
+                qDebug("wait=%d",wait_);
+                if(wait_<=0){wait_=1;}
+                char c=cvWaitKey(wait_);
+                if(c==27){break;}
             }
             if(mode==2)
             {
