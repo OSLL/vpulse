@@ -319,7 +319,7 @@ int* processor::createFreqMask(double fLow, double fHight)
         //printf("mask[%d]=%f\n",i,mask[i]);
         if((mask[i]>fLow)&&(mask[i]<fHight))
         {
-            printf("mask[%d]=%f \t > \t fLow= %f && \t < \t fHight= %f \n",i,mask[i],fLow, fHight);
+            //printf("mask[%d]=%f \t > \t fLow= %f && \t < \t fHight= %f \n",i,mask[i],fLow, fHight);
             indexes[j]=i;
             j++;
         }

@@ -341,7 +341,7 @@ void VideoReader::CVReadVideo(const char* videofilename_in)
                 //============================================================
                 //QTime tt;
                 //tt.start();
-                for(int lvl=0; lvl<4; lvl++)
+                for(int lvl=0; lvl<2; lvl++)
                 {
                     pyrDown(*mat_frame, *mat_frame, Size(mat_frame->cols/2, mat_frame->rows/2));
                 }
@@ -489,7 +489,7 @@ QTime tt;
                     mode=2;
                 }
                 wait_ = 33-(int)tt.elapsed();
-                qDebug("wait=%d",wait_);
+                //qDebug("wait=%d",wait_);
                 if(wait_<=0){wait_=1;}
                 char c=cvWaitKey(wait_);
                 if(c==27){break;}
@@ -503,10 +503,10 @@ QTime tt;
                 //frames[framesRed]= new Mat;
                 //blured_frames[framesRed]= new Mat;
                 Mat* mat_frame = new Mat(cvframe_);
-                blured_frames[framesRed]= mat_frame;
+                //blured_frames[framesRed]= mat_frame;
                 //frames[framesRed]->create(mat_frame->rows, mat_frame->cols,CV_8UC(3));
                 //mat_frame->copyTo(*frames[framesRed]);
-                Pr1->render(blured_frames[framesRed],LengthRend,frameHeightOr,frameWidthOr,portion,portion_ind);
+                Pr1->render(mat_frame,LengthRend,frameHeightOr,frameWidthOr,portion,portion_ind);
                 //IplImage cvBlframe(*mat_frame);
                 cvShowImage("original1",cvframe_);
                 portion_ind++;
@@ -520,7 +520,7 @@ QTime tt;
                 framesRed++;
                 //currentPortion++;
                 wait_ = 33-(int)tt.elapsed();
-                qDebug("wait=%d",wait_);
+                //qDebug("wait=%d",wait_);
                 if(wait_<=0){wait_=1;}
                 char c=cvWaitKey(wait_);
                 if(c==27){break;}
@@ -530,7 +530,7 @@ QTime tt;
 
                 cvframe_=/*(Mat*)*/cvQueryFrame(capture);
 
-                if(!cvframe_){qDebug("END!");cvDestroyWindow("original1");break;}
+                if(!cvframe_){cvDestroyWindow("original1");break;}
                 //IplImage cvBlframe(*mat_frame);
                 cvShowImage("original1",cvframe_);
                 tt.start();
@@ -603,7 +603,7 @@ QTime tt;
                 case 7:
                     double rate;
                     Pr1->countPulseRate(&rate);
-                    qDebug("Rate=%lf",rate);
+                    //qDebug("Rate=%lf",rate);
                 case 8:
                     Pr1->AllocRendBuff(LengthRend,Pr1->getNFr());
                     break;
@@ -628,7 +628,7 @@ QTime tt;
                 if(c==27){break;}
             }
         }
-qDebug("(mode%d)time elapsed: %d ms",mode,tt.elapsed());
+//qDebug("(mode%d)time elapsed: %d ms",mode,tt.elapsed());
     }
     //printf("counter=%d\n",Pr1->getFrCounter());
     cvDestroyWindow("original1");
@@ -637,7 +637,7 @@ qDebug("(mode%d)time elapsed: %d ms",mode,tt.elapsed());
     this->frameWidth=this->blured_frames[0]->cols;
     this->NumberOfFrames=framesRed-10; //throw out 10 last frames
     cvReleaseCapture(&capture);
-    qDebug("Noffr = %d, frH=%d, frW= %d",NumberOfFrames,frameHeight,frameWidth);
+    //qDebug("Noffr = %d, frH=%d, frW= %d",NumberOfFrames,frameHeight,frameWidth);
     //delete(Pr1);
 }
 

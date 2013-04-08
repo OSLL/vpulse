@@ -33,20 +33,20 @@ int main(int argc, char *argv[])
 
 
     char* filename_in = "palm.MOV";
-    char* filename_out = "face2";
+    //char* filename_out = "face2";
 
     VideoReader* Curr_video=new VideoReader();
     processor* Pr1=new processor();
-    float fr1= 45.0/60.0;
-    float fr2= 90.0/60.0;
-    double ampFactor = 40.0;
+    float fr1= 50.0/60.0;
+    float fr2= 75.0/60.0;
+    double ampFactor = 10.0;
     //Pr1->init(90,37,33,30);
     //Curr_video->CVReadVideoCAM();
     //Curr_video->CVReadVideoCAM(filename_in);
     Curr_video->CVReadVideoRT(filename_in,Pr1,fr1,fr2,ampFactor);
     //Curr_video->ReadFrames(filename_in,4);
     //Curr_video->PrintFrames();
-    int sRate=30; //TODO
+    //int sRate=30; //TODO
     //qDebug("SRate=%lf",Curr_video->getfps());
     //processor* Pr1= new processor(Curr_video->getNumberOfFrames(),Curr_video->getFrameHeight(),Curr_video->getFrameWidth(), sRate, Curr_video->getBluredFrames());
     //processor* Pr1= new processor(Curr_video->get_portion(),Curr_video->getFrameHeight(),Curr_video->getFrameWidth(), Curr_video->getfps(), Curr_video->getBluredFrames());
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
     //double rate;
     ///Pr1->countPulseRate(&rate);
     //qDebug("Rate=%lf",rate);
-    double* summSignal;
+    //double* summSignal;
     //Pr1->AddPulseToFrames(Curr_video->getFrames(),summSignal,Curr_video->getNumberOfFrames());
     //Curr_video->tmpframereader(filename_in);
     //int i=0;
@@ -95,9 +95,9 @@ int main(int argc, char *argv[])
     //Curr_video->PrintFrames();
     //Curr_video->CVWriteVideo(filename_out);
     //Curr_video->CVOutputVideo();
-    printf("success!\n");
-    printf("Height = %d\n",Curr_video->getFrameHeight());
-    printf("Width = %d\n",Curr_video->getFrameWidth());
+    //printf("success!\n");
+    //printf("Height = %d\n",Curr_video->getFrameHeight());
+    //printf("Width = %d\n",Curr_video->getFrameWidth());
     delete(Pr1);
     delete(Curr_video);
     QPushButton B1("Stop",&w);
