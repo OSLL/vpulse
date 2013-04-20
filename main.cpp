@@ -32,21 +32,29 @@ int main(int argc, char *argv[])
     w.show();
 
 
-    char* filename_in = "face.mp4";
+    char* filename_in = "palm.MOV";
     //char* filename_out = "face2";
-
+/*
     VideoReader* Curr_video=new VideoReader();
     processor* Pr1=new processor();
     float fr1= 20.0/60.0;
     float fr2= 100.0/60.0;
-    double ampFactor = 10.0;
+    double ampFactor = 40.0;
+    Curr_video->CVReadVideoRT(filename_in,Pr1,fr1,fr2,ampFactor);
+    */
+VideoReader* Curr_video=new VideoReader();
+Curr_video->MatTest(filename_in);
+qDebug("MatTestDone");
+
+
+
     //Pr1->init(90,37,33,30);
     //Curr_video->CVReadVideoCAM();
     //Curr_video->CVReadVideoCAM(filename_in);
-    Curr_video->CVReadVideoRT(filename_in,Pr1,fr1,fr2,ampFactor);
+
     //Curr_video->ReadFrames(filename_in,4);
     //Curr_video->PrintFrames();
-    int sRate=30; //TODO
+    //int sRate=30; //TODO
     //qDebug("SRate=%lf",Curr_video->getfps());
     //processor* Pr1= new processor(Curr_video->getNumberOfFrames(),Curr_video->getFrameHeight(),Curr_video->getFrameWidth(), sRate, Curr_video->getBluredFrames());
     //processor* Pr1= new processor(Curr_video->get_portion(),Curr_video->getFrameHeight(),Curr_video->getFrameWidth(), Curr_video->getfps(), Curr_video->getBluredFrames());
@@ -76,29 +84,34 @@ int main(int argc, char *argv[])
     //double rate;
     ///Pr1->countPulseRate(&rate);
     //qDebug("Rate=%lf",rate);
-    //double* summSignal;
-    //Pr1->AddPulseToFrames(Curr_video->getFrames(),summSignal,Curr_video->getNumberOfFrames());
-    //Curr_video->tmpframereader(filename_in);
-    //int i=0;
-    /*while(Curr_video->getNumberOfFrames()>Curr_video->get_portion()*(i+1))
+
+
+    /*
+    double* summSignal;
+    Curr_video->tmpframereader(filename_in);
+    int i=0;
+    while(Curr_video->getNumberOfFrames()>Curr_video->get_portion()*(i+1))
     {
         QTime tt;
         tt.start();
         Pr1->AddPulseToFrames(&Curr_video->getFrames()[Curr_video->get_portion()*i],summSignal,Curr_video->get_portion());
         qDebug("time elapsed: %d ms",tt.elapsed());
         i++;
-    }*/
+    }
     Pr1->freeRendBuff();
+    */
+
+
 
     //Pr1->AddPulseToFrames(Curr_video->getFrames(),summSignal,Curr_video->get_portion());
     //Pr1->AddPulseToFrames(&Curr_video->getFrames()[Curr_video->get_portion()+1],summSignal,Curr_video->get_portion());
    // Curr_video->PrintFrames();
     //Curr_video->CVWriteVideo(filename_out);
-    //Curr_video->CVOutputVideo();
+    Curr_video->CVOutputVideo();
     //printf("success!\n");
     //printf("Height = %d\n",Curr_video->getFrameHeight());
     //printf("Width = %d\n",Curr_video->getFrameWidth());
-    delete(Pr1);
+    //delete(Pr1);
     delete(Curr_video);
     QPushButton B1("Stop",&w);
     QObject::connect(&B1,SIGNAL(clicked()),&a,SLOT(quit()));

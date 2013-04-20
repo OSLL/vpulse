@@ -696,8 +696,17 @@ void processor::render(Mat* frames,long LengthAll, int FrHeight, int FrWidth, in
     FramesToVector(&frames,fullFrames, FrWidth, FrHeight, 1);
     normalize(fullFrames,LengthAll,255.0);
     rgb2yiq(fullFrames,FrWidth, FrHeight, 1);
-    NearInterpolation(AllFrames,pulseFrames,frameWidth,frameHeight,FrWidth,FrHeight,NofFrames,frame_number);
-    sumVector(fullFrames,pulseFrames,fullFrames,LengthAll);     //FIXME tmp above
+    //while(s!=FrWidth/frameWidth)
+    //{
+        NearInterpolation(AllFrames,pulseFrames,frameWidth,frameHeight,frameWidth*2,frameHeight*2,NofFrames,frame_number);
+        gauss_3_3(pulseFrames,pulseFrames_gauss,frameHeight*2,FrHeight/2,NofFrames,frame_number);
+       // s=s*2;
+    //}
+    NearInterpolation(AllFrames,pulseFrames,frameWidth,frameHeight,FrWidth/2,FrHeight/2,NofFrames,frame_number);
+    gauss_3_3(pulseFrames,pulseFrames_gauss,FrWidth/2,FrHeight/2,NofFrames,frame_number);
+    NearInterpolation2(pulseFrames_gauss,pulseFrames,FrWidth/2,FrHeight/2,FrWidth,FrHeight,NofFrames,frame_number);
+    gauss_3_3(pulseFrames,pulseFrames_gauss,FrWidth,FrHeight,NofFrames,frame_number);
+    sumVector(fullFrames,pulseFrames_gauss,fullFrames,LengthAll);     //FIXME tmp above
     YIQ2RGBnormalizeColorChannels(fullFrames,FrWidth, FrHeight, 1);
     rgbBoarder(fullFrames,LengthAll);
     normalize(fullFrames,LengthAll,1.0/255.0);
@@ -720,7 +729,8 @@ int processor::AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, i
 void processor::AllocRendBuff(long lengthAll, long NofFr_)
 {
     fullFrames = (double*)malloc(lengthAll*sizeof(double));
-    pulseFrames = (double*)malloc(lengthAll*NofFr_*sizeof(double));
+    pulseFrames = (double*)malloc(lengthAll*sizeof(double));
+    pulseFrames_gauss = (double*)malloc(lengthAll*sizeof(double));
 }
 
 void processor::freeRendBuff(void)
@@ -880,13 +890,13 @@ void processor::NearInterpolation2(double* src, double* dst, int oldwidth, int o
     {
         for(int cy = 0; cy < newheight; cy++)
         {
-            long pixel = ((long)cx * (long)((long)newheight*nofFr)) + ((long)cy*(long)nofFr)+frameInd;
-            long nearestMatch =  (((long)(cx / scalewidth) * (oldheight*nofFr)) + ((long)(cy / scaleheight)*nofFr) )+frameInd;
+            long pixel = ((long)cx * (long)((long)newheight)) + ((long)cy);
+            long nearestMatch =  (((long)(cx / scalewidth) * (oldheight)) + ((long)(cy / scaleheight)) );
             //printf("pixel = %d\n",pixel);
             //printf("near = %d\n",nearestMatch);
             dst[pixel] =  src[nearestMatch];
-            dst[pixel + newheight*newwidth*nofFr] =  src[nearestMatch + oldheight*oldwidth*nofFr];
-            dst[pixel + newheight*newwidth*2*nofFr] =  src[nearestMatch + oldheight*oldwidth*nofFr*2];
+            dst[pixel + newheight*newwidth] =  src[nearestMatch + oldheight*oldwidth];
+            dst[pixel + newheight*newwidth*2] =  src[nearestMatch + oldheight*oldwidth*2];
         }
     }
 }
@@ -924,4 +934,50 @@ fftw_plan* processor::get_ifft_plan(void)
 int* processor::get_mask(void)
 {
     return(mask);
+}
+
+void  processor::gauss_3_3(double* src, double* dst, int width, int height , int nofFr, int frameInd)
+{
+    for(int i = 0; i<width; i++)
+    {
+        dst[i * (height)] = src[i * (height)];
+        dst[i * (height)+height-1] = src[i * (height)+height-1];
+    }
+    for(int j = 0; j<width; j++)
+    {
+        dst[j * (width)] = src[j * (width)];
+        dst[j * (width)+width-1] = src[j * (width)+width-1];
+    }
+
+    for(int i=1; i<width-1; i++)
+    {
+        for(int j=1; j<height-1; j++)
+        {
+            int pixeldst = (i * (height)) + j;
+            long pixelsrc_mi_mj =  ((long)(i-1)* height) + ((long)(j-1) );
+            long pixelsrc_mi_j =  ((long)(i-1)* height) + ((long)j ) ;
+            long pixelsrc_mi_pj =  ((long)(i-1)* height) + ((long)(j+1) *nofFr) ;
+
+            long pixelsrc_i_mj =  ((long)i* height) + ((long)(j-1) ) ;
+            long pixelsrc_i_j =  ((long)i* height) + ((long)j ) ;
+            long pixelsrc_i_pj =  ((long)i* height) + ((long)(j+1) ) ;
+
+            long pixelsrc_pi_mj =  ((long)(i+1)* height) + ((long)(j-1) ) ;
+            long pixelsrc_pi_j =  ((long)(i+1)* height) + ((long)j *nofFr) ;
+            long pixelsrc_pi_pj =  ((long)(i+1)* height) + ((long)(j+1) ) ;
+            dst[pixeldst] =
+                    src[pixelsrc_mi_mj]*ker[0]+src[pixelsrc_mi_j]*ker[1]+src[pixelsrc_mi_pj]*ker[2]+
+                    src[pixelsrc_i_mj]*ker[3]+src[pixelsrc_i_j]*ker[4]+src[pixelsrc_i_pj]*ker[5]+
+                    src[pixelsrc_pi_mj]*ker[6]+src[pixelsrc_pi_j]*ker[7]+src[pixelsrc_pi_pj]*ker[8];
+
+            dst[pixeldst+height*width] =
+                    src[pixelsrc_mi_mj+height*width]*ker[0]+src[pixelsrc_mi_j+height*width]*ker[1]+src[pixelsrc_mi_pj+height*width]*ker[2]+
+                    src[pixelsrc_i_mj+height*width]*ker[3]+src[pixelsrc_i_j+height*width]*ker[4]+src[pixelsrc_i_pj+height*width]*ker[5]+
+                    src[pixelsrc_pi_mj+height*width]*ker[6]+src[pixelsrc_pi_j+height*width]*ker[7]+src[pixelsrc_pi_pj+height*width]*ker[8];
+            dst[pixeldst+height*width*2] =
+                    src[pixelsrc_mi_mj+height*width*2]*ker[0]+src[pixelsrc_mi_j+height*width*2]*ker[1]+src[pixelsrc_mi_pj+height*width*2]*ker[2]+
+                    src[pixelsrc_i_mj+height*width*2]*ker[3]+src[pixelsrc_i_j+height*width*2]*ker[4]+src[pixelsrc_i_pj+height*width*2]*ker[5]+
+                    src[pixelsrc_pi_mj+height*width*2]*ker[6]+src[pixelsrc_pi_j+height*width*2]*ker[7]+src[pixelsrc_pi_pj+height*width*2]*ker[8];
+        }
+    }
 }

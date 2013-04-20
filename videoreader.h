@@ -45,6 +45,8 @@ public:
 
     void CVReadVideoCAM(void);
 
+    void MatTest(char* f_name);
+
     /*Mat**/ IplImage* cvframe_;
 
 

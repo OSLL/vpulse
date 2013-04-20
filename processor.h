@@ -29,6 +29,7 @@ private:
     //rendering buffers:
     double* fullFrames;
     double* pulseFrames;
+    double* pulseFrames_gauss;
 
 
 
@@ -84,7 +85,7 @@ public:
     fftw_plan* get_ifft_plan(void);
     int* get_mask(void);
     void render(Mat* frames,long LengthAll, int FrHeight, int FrWidth, int NofFrames, int frame_number);
-
+void  gauss_3_3(double* src, double* dst, int width, int height , int nofFr, int frameInd);
 };
 
 #endif // PROCESSOR_H

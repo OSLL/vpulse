@@ -425,15 +425,47 @@ void VideoReader::CVReadVideoCAM(void)
     qDebug("Noffr = %d, frH=%d, frW= %d",NumberOfFrames,frameHeight,frameWidth);
 }
 
+void VideoReader::MatTest(char* f_name)
+{
+        CvCapture* capture =cvCreateFileCapture(f_name);
+        cvframe_=/*(Mat*)*/cvQueryFrame(capture);
+        Mat* mat_frame =new Mat(cvframe_);
+        Mat* image_mat = new Mat(mat_frame->rows,mat_frame->cols,CV_8UC(3));
+        Mat* image_mat_db = new Mat(mat_frame->rows,mat_frame->cols,CV_32FC(3));
+        for(int row=0; row<mat_frame->rows;row++)
+        {
+            for(int col=0; col<mat_frame->cols; col++)
+            {
+         image_mat->at<Vec3b>(row,col)[0]=mat_frame->at<Vec3b>(row,col)[0];
+         image_mat->at<Vec3b>(row,col)[1]=mat_frame->at<Vec3b>(row,col)[1];
+         image_mat->at<Vec3b>(row,col)[2]=mat_frame->at<Vec3b>(row,col)[2];
+
+         image_mat_db->at<Vec3f>(row,col)[0]=(float)mat_frame->at<Vec3b>(row,col)[0];
+         image_mat_db->at<Vec3f>(row,col)[1]=(float)mat_frame->at<Vec3b>(row,col)[1];
+         image_mat_db->at<Vec3f>(row,col)[2]=(float)mat_frame->at<Vec3b>(row,col)[2];
+         if(row<5&&col<5)
+         {
+             qDebug("orig = %d %d %d",mat_frame->at<Vec3b>(row,col)[0],mat_frame->at<Vec3b>(row,col)[1],mat_frame->at<Vec3b>(row,col)[2]);
+             qDebug("double = %lf %lf %lf",image_mat_db->at<Vec3f>(row,col)[0],image_mat_db->at<Vec3f>(row,col)[1],image_mat_db->at<Vec3f>(row,col)[2]);
+         }
+            }
+        }
+        cvReleaseCapture(&capture);
+        char* image1 = "TestMat/testMatUchar.ppm";
+        char* image2 = "TestMat/testMatDb.ppm";
+        imwrite(image1, *image_mat);
+        imwrite(image2, *image_mat_db);
+}
+
 void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, double fLow, double fHight,double ampFactor)
 {
     //QTime tt;
 
     cvframe_=NULL;
     //workstady=0;
-    //CvCapture* capture =cvCreateFileCapture(videofilename_in);
-    CvCapture* capture = cvCreateCameraCapture(CV_CAP_ANY);
-    assert(capture);
+    CvCapture* capture =cvCreateFileCapture(videofilename_in);
+    //CvCapture* capture = cvCreateCameraCapture(CV_CAP_ANY);
+    //assert(capture);
     //this->fps= cvGetCaptureProperty(capture,CV_CAP_PROP_FPS);       //FIXME!
     fps=30;
     //int framePortion=30*5;
@@ -629,7 +661,7 @@ QTime tt;
                     }
                     break;*/
                 case 9:
-                    mode =1;
+                    //mode =1;
                     break;
                 case 11:
                     break;
