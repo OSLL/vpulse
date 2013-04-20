@@ -312,12 +312,12 @@ int* processor::createFreqMask(double fLow, double fHight)
 {
     int* indexes=(int*)malloc((this->NumberOfFrames+1)*sizeof(int));
     int j=0;
-    double* mask=(double*)malloc(this->NumberOfFrames*sizeof(double));
+    real_mask_freq=(double*)malloc(this->NumberOfFrames*sizeof(double));
     for(int i=0; i<this->NumberOfFrames;i++)
     {
-        mask[i]=(double)i/(double)NumberOfFrames*(double)samplingRate;
+        real_mask_freq[i]=(double)i/(double)NumberOfFrames*(double)samplingRate;
         //printf("mask[%d]=%f\n",i,mask[i]);
-        if((mask[i]>fLow)&&(mask[i]<fHight))
+        if((real_mask_freq[i]>=fLow)&&(real_mask_freq[i]<=fHight))
         {
             //printf("mask[%d]=%f \t > \t fLow= %f && \t < \t fHight= %f \n",i,mask[i],fLow, fHight);
             indexes[j]=i;
@@ -329,8 +329,13 @@ int* processor::createFreqMask(double fLow, double fHight)
     {
         indexes[k]=0;
     }
-    free(mask);
+    //free(real_mask_freq);         //FIXME
     return(indexes);
+}
+
+double* processor::getRealMaskFr(void)
+{
+    return(real_mask_freq);
 }
 
 void processor::copyVector(double* src, double* dst, long len)
@@ -349,15 +354,25 @@ void processor::copyFFTW_cpx(fftw_complex* src, fftw_complex* dst, long len)
     }
 }
 
-void processor::applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long len)
+void processor::applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long len, int* teoretical_rate_ind)
 {
-    int k=0;
+    int k=0;int teoretical_rate_ind_tmp=0;
+    double value=0.0;
+    double value1=0.0;
     for(int i=0; i<len; i++)
     {
         if(i==mask[k])
         {
             dst[i][0]=src[i][0];
             dst[i][1]=src[i][1];
+
+            //qDebug("dst_mask[%d].re=%lf dst_mask[%ld].im=%lf",i,dst[i][0],i,dst[i][1]);
+            value1= dst[i][0]*dst[i][0]+dst[i][1]*dst[i][1];
+            if(value1>value)
+            {
+                teoretical_rate_ind_tmp=i;
+                value=value1;
+            }
             k++;
         }
         else
@@ -368,6 +383,8 @@ void processor::applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long l
     }
     //dst[9][0]=src[9][0];
     //dst[9][1]=src[9][1];
+    teoretical_rate_ind[teoretical_rate_ind_tmp]++;
+    qDebug("ind = %d",teoretical_rate_ind[teoretical_rate_ind_tmp]);
 }
 
 void processor::sumVector(double* src1, double *src2, double* dst, long len)
@@ -553,6 +570,76 @@ void processor::YIQ2RGBnormalizeColorChannels2(double* srcDst, int frWidth, int 
             srcDst[ch+chD*2]=srcDst[ch+chD*2]/normfactor;
         }
     }
+}
+
+void processor:: countPulse(double* res, double ampFact)
+{
+    int length1=(int)(this->NumberOfFrames);
+    //if(length1>PRateInt){length1=PRateInt;}
+    int heightCenter= (int)(this->frameHeight/2);
+    int widthCenter= (int)(this->frameWidth/2);
+    int widthInterval=(int)(widthCenter/3);
+    double* buf= (double*)malloc(sizeof(double)*length1);
+    //qDebug("buf[0]=%lf,buf[5]=%lf,buf[15]=%lf",buf[0],buf[5],buf[15]);
+    for(int i=0 ; i<length1; i++)
+    {
+        buf[i]=0.0;
+    }
+    //qDebug("buf[0]=%lf,buf[5]=%lf,buf[15]=%lf",buf[0],buf[5],buf[15]);
+    copyVector(&AllFrames[frameHeight*NumberOfFrames*(widthCenter-widthInterval)+heightCenter*NumberOfFrames],buf,length1);
+    for(int i=widthCenter-widthInterval+1; i<widthCenter+widthInterval; i++)
+    {
+        for(int j=heightCenter-2;j <heightCenter+2; j++ ){
+        //int j = heightCenter;
+        //int i = widthCenter;
+        sumVector(buf,&AllFrames[frameHeight*NumberOfFrames*i+j*NumberOfFrames],buf,length1);
+        }
+    }
+    //=====find min/max
+    int flag;//=0 - down; =1 - up
+    int oldFlag=0;
+    int NofPoints=0;
+    int globNum = 0;
+    int stady=0;
+    int term = 0;
+    int index1;
+    double amp_8= ampFact/6.0;
+    for(int i=0; i<length1-1; i++)
+    {
+        if((buf[i]<=buf[i+1])/*&&(fabs(buf[i])>=amp_4)*/){
+            flag=0;
+        }else{
+            flag=1;
+        }
+        if((oldFlag!=flag)&&(i!=0)&&(fabs(buf[i])>=amp_8))
+        {
+            qDebug("buf[%d]=%lf,buf[%d]=%lf",i,buf[i],i+1,buf[i+1]);
+                if(stady==0){stady++;}else{
+                    if(stady==1){stady++;}else{
+                        if(stady==2){stady++;}
+                    }
+                }
+        }
+        //qDebug("stady[%d]=%d",i,stady);
+        //qDebug("buf[%d]=%lf,buf[%d]=%lf",i,buf[i],i+1,buf[i+1]);
+        if(stady>0&&stady<3)
+        {
+            NofPoints++;
+        }
+        if(stady == 3)
+        {
+            globNum+=NofPoints;stady = 1;
+            NofPoints=0;
+            term ++;
+            //qDebug("term=%d",term);
+        }
+        oldFlag=flag;
+    }
+    //const char* f_name1 = "Freq_pulse_buffer.txt";
+    //PrintDataDb(buf,length1,f_name1);
+    free(buf);
+    *res= (double)globNum/(double)samplingRate/(double)term;           //FIXME!
+    qDebug("nofpoints=%d",globNum);
 }
 
 void processor::countPulseRate(double* res)

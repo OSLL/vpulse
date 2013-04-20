@@ -1,7 +1,7 @@
 #include "videoreader.h"
 
 VideoReader::VideoReader():
-    portion(90)
+    portion(140)
 {
     av_register_all();
     //this->frames=
@@ -341,7 +341,7 @@ void VideoReader::CVReadVideo(const char* videofilename_in)
                 //============================================================
                 //QTime tt;
                 //tt.start();
-                for(int lvl=0; lvl<2; lvl++)
+                for(int lvl=0; lvl<3; lvl++)
                 {
                     pyrDown(*mat_frame, *mat_frame, Size(mat_frame->cols/2, mat_frame->rows/2));
                 }
@@ -435,7 +435,7 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, do
     CvCapture* capture = cvCreateCameraCapture(CV_CAP_ANY);
     assert(capture);
     //this->fps= cvGetCaptureProperty(capture,CV_CAP_PROP_FPS);       //FIXME!
-    fps=28;
+    fps=30;
     //int framePortion=30*5;
     int framesRed=0;
     int currentPortion=0;
@@ -443,6 +443,9 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, do
     int stady=0;
     int wait_=0;
     int portion_ind=0;
+    int* teor_freq=(int*)malloc(sizeof(int)*(portion/2+1));
+    for(int i = 0; i<portion/2+1; i++){ teor_freq[i]=0;}
+    int tmp_ind=0;
     cvNamedWindow("original1",CV_WINDOW_AUTOSIZE);
 QTime tt;
     while(1)
@@ -488,7 +491,7 @@ QTime tt;
                 {
                     mode=2;
                 }
-                wait_ = 33-(int)tt.elapsed();
+                wait_ = (int)(100.0/3.0-tt.elapsed());
                 //qDebug("wait=%d",wait_);
                 if(wait_<=0){wait_=1;}
                 char c=cvWaitKey(wait_);
@@ -559,7 +562,7 @@ QTime tt;
                         Pr1->copyVector((double*)&Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->get_in_fft(),Pr1->getNFr());
                         fftw_execute(*Pr1->get_fft_plan());
                         //ifft:compute
-                        Pr1->applyMask(Pr1->get_out_fft(),Pr1->get_in_ifft(),Pr1->get_mask(),Pr1->getNFr()/2+1);
+                        Pr1->applyMask(Pr1->get_out_fft(),Pr1->get_in_ifft(),Pr1->get_mask(),Pr1->getNFr()/2+1,teor_freq);
                         fftw_execute(*Pr1->get_ifft_plan());
                         //Pr1->normalize(Pr1->get_out_ifft(), (long)Pr1->getNFr(),(double)Pr1->getNFr()/ampFactor);
                         Pr1->copyVector(Pr1->get_out_ifft(), &Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->getNFr());
@@ -574,7 +577,7 @@ QTime tt;
                         Pr1->copyVector((double*)&Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->get_in_fft(),Pr1->getNFr());
                         fftw_execute(*Pr1->get_fft_plan());
                         //ifft:compute
-                        Pr1->applyMask(Pr1->get_out_fft(),Pr1->get_in_ifft(),Pr1->get_mask(),Pr1->getNFr()/2+1);
+                        Pr1->applyMask(Pr1->get_out_fft(),Pr1->get_in_ifft(),Pr1->get_mask(),Pr1->getNFr()/2+1,teor_freq);
                         fftw_execute(*Pr1->get_ifft_plan());
                         //Pr1->normalize(Pr1->get_out_ifft(), (long)Pr1->getNFr(),(double)Pr1->getNFr()/ampFactor);
                         Pr1->copyVector(Pr1->get_out_ifft(), &Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->getNFr());
@@ -589,7 +592,7 @@ QTime tt;
                         Pr1->copyVector((double*)&Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->get_in_fft(),Pr1->getNFr());
                         fftw_execute(*Pr1->get_fft_plan());
                         //ifft:compute
-                        Pr1->applyMask(Pr1->get_out_fft(),Pr1->get_in_ifft(),Pr1->get_mask(),Pr1->getNFr()/2+1);
+                        Pr1->applyMask(Pr1->get_out_fft(),Pr1->get_in_ifft(),Pr1->get_mask(),Pr1->getNFr()/2+1,teor_freq);
                         fftw_execute(*Pr1->get_ifft_plan());
                         //Pr1->normalize(Pr1->get_out_ifft(), (long)Pr1->getNFr(),(double)Pr1->getNFr()/ampFactor);
                         Pr1->copyVector(Pr1->get_out_ifft(), &Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->getNFr());
@@ -601,9 +604,21 @@ QTime tt;
                     Pr1->ClearFFT_IFFT_mask();
                     break;
                 case 7:
+                    double rate_t; //int tmp_ind_val=0;
+                    for(int ind=0; ind <portion/2+1; ind ++)
+                    {
+                        if(teor_freq[ind]>teor_freq[tmp_ind])
+                        {
+                            tmp_ind=ind;
+                            qDebug("ind = %d",ind);
+                        }
+                    }
+                    rate_t= Pr1->getRealMaskFr()[tmp_ind];
+                    //free(Pr1->getRealMaskFr());             //FIXME TOPOR!
+                    qDebug("Rate_t=%lf, tmp = %lf",rate_t*60.0,1.0/rate_t*60.0);
                     double rate;
-                    Pr1->countPulseRate(&rate);
-                    //qDebug("Rate=%lf",rate);
+                    Pr1->countPulse(&rate,ampFactor);
+                    qDebug("Rate=%lf",1.0/rate*60.0);
                 case 8:
                     Pr1->AllocRendBuff(LengthRend,Pr1->getNFr());
                     break;

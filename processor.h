@@ -25,6 +25,7 @@ private:
     fftw_plan p_ifft;
     //frequency_mask
     int* mask;
+    double* real_mask_freq;
     //rendering buffers:
     double* fullFrames;
     double* pulseFrames;
@@ -38,7 +39,7 @@ public:
     int* createFreqMask(double fLow, double fHight);
     void copyVector(double* src, double* dst, long len);
     void copyFFTW_cpx(fftw_complex* src, fftw_complex* dst, long len);
-    void applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long len);
+    void applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long len,int* teoretical_rate_ind);
     void sumVector(double* src1, double *src2, double* dst, long len);
     void rgbBoarder(double* src, long len);
     void rgbBoarder2(double* src, long len);
@@ -48,7 +49,8 @@ public:
     void ClearFFT_IFFT_mask(void);
     void AllocRendBuff(long lengthAll, long NofFr_);
     void freeRendBuff(void);
-
+    void countPulse(double* result, double ampFact);
+    double* getRealMaskFr(void);
     processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, double sRate_in, Mat** Frames);
     ~processor();
     processor();
