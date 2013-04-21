@@ -60,6 +60,7 @@ public:
 
     void work(double fLow, double fHight, double ampFactor);
     void VectorToFrames(double* src, Mat** dst, int frWidth, int frHeight, int NofFrames);
+    void VectorToFrames_db(double* src, Mat** dst, int frWidth, int frHeight, int NofFrames);
     void FramesToVector(Mat** src, double* dst, int frWidth, int frHeight, int NofFrames);
     int AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, int NofFrames);
     int AddPulseToFrames2(Mat** frames/*, Mat** pulse*/, double* result, int NofFrames);

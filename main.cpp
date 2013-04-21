@@ -34,18 +34,17 @@ int main(int argc, char *argv[])
 
     char* filename_in = "palm.MOV";
     //char* filename_out = "face2";
-/*
+
     VideoReader* Curr_video=new VideoReader();
     processor* Pr1=new processor();
     float fr1= 20.0/60.0;
     float fr2= 100.0/60.0;
-    double ampFactor = 40.0;
+    double ampFactor = 60.0;
     Curr_video->CVReadVideoRT(filename_in,Pr1,fr1,fr2,ampFactor);
-    */
-VideoReader* Curr_video=new VideoReader();
+/*
 Curr_video->MatTest(filename_in);
 qDebug("MatTestDone");
-
+*/
 
 
     //Pr1->init(90,37,33,30);
@@ -86,7 +85,7 @@ qDebug("MatTestDone");
     //qDebug("Rate=%lf",rate);
 
 
-    /*
+
     double* summSignal;
     Curr_video->tmpframereader(filename_in);
     int i=0;
@@ -99,7 +98,7 @@ qDebug("MatTestDone");
         i++;
     }
     Pr1->freeRendBuff();
-    */
+
 
 
 
@@ -111,7 +110,7 @@ qDebug("MatTestDone");
     //printf("success!\n");
     //printf("Height = %d\n",Curr_video->getFrameHeight());
     //printf("Width = %d\n",Curr_video->getFrameWidth());
-    //delete(Pr1);
+    delete(Pr1);
     delete(Curr_video);
     QPushButton B1("Stop",&w);
     QObject::connect(&B1,SIGNAL(clicked()),&a,SLOT(quit()));

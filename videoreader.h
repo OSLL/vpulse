@@ -13,6 +13,7 @@ class VideoReader
 private:
     Mat* frames[FRAMES_MAX];
     Mat* blured_frames[FRAMES_MAX];
+    Mat* blured_frames_db[FRAMES_MAX];
     int NumberOfFrames;
     int frameHeight;
     int frameWidth;
@@ -24,7 +25,7 @@ private:
 public:
 
     int ReadFrames(const char* videofilename_in, int pyramid_level);
-    int PyrUpBlured(int pyramid_level);
+    int PyrUpBlured(int pyramid_level,int ind_start, int ind_end);
     int PrintFrames(void);
     int AddPulseToFrames(void);
 
@@ -48,8 +49,12 @@ public:
     void MatTest(char* f_name);
 
     /*Mat**/ IplImage* cvframe_;
-
-
+void normalize(Mat* src, double factor);
+void rgb2yiq(Mat* src);
+void YIQ2RGBnormalizeColorChannels(Mat* src);
+void render(Mat* frame, int portion_index);
+void sumVector(Mat* src1, Mat *src2, Mat* dst);
+void rgbBoarder(Mat* src);
 
     VideoReader();
     ~VideoReader();

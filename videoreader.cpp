@@ -204,7 +204,7 @@ void print_frame_txt(Mat* frame,const char* filename)
             fprintf(stream, "\n \t row = %d\n",curr_row);
             for(int curr_col = 0; curr_col <fr_cols; curr_col++)
             {
-                fprintf(stream, "%d %u \t|\t %u \t|\t %u",curr_row, frame->at<Vec3b>(curr_row,curr_col)[0],frame->at<Vec3b>(curr_row,curr_col)[1],frame->at<Vec3b>(curr_row,curr_col)[2]);
+                fprintf(stream, "%d %f \t|\t %f \t|\t %f",curr_col, frame->at<Vec3f>(curr_row,curr_col)[0],frame->at<Vec3f>(curr_row,curr_col)[1],frame->at<Vec3f>(curr_row,curr_col)[2]);
                 fputc('\n',stream);
             }
 
@@ -242,18 +242,19 @@ int VideoReader::PrintFrames(void)
 
 }
 
-int VideoReader::PyrUpBlured(int pyramid_level)
+int VideoReader::PyrUpBlured(int pyramid_level,int ind_start, int ind_end)
 {
     if(pyramid_level>=1)
     {
-        for(int NofFr = 0; NofFr < this->NumberOfFrames; NofFr++)
+        char frame_filename[32];
+        for(int NofFr = ind_start; NofFr < ind_end; NofFr++)
         {
-            Mat* image_mat=this->blured_frames[NofFr];
-            for(int lvl=1; lvl<=pyramid_level;lvl++)
-            {
+            Mat* image_mat=this->blured_frames_db[NofFr];
+            //for(int lvl=1; lvl<=pyramid_level;lvl++)
+            //{
                 //pyrUp(*image_mat, *image_mat, Size(image_mat->cols*2, image_mat->rows*2));
-                cv::resize(*image_mat,*image_mat,Size(image_mat->cols*2, image_mat->rows*2),0,0,INTER_CUBIC);
-            }
+                cv::resize(*image_mat,*image_mat,Size(image_mat->cols*pyramid_level, image_mat->rows*pyramid_level),0,0,INTER_CUBIC);
+            //}
         }
     }
 }
@@ -443,14 +444,19 @@ void VideoReader::MatTest(char* f_name)
          image_mat_db->at<Vec3f>(row,col)[0]=(float)mat_frame->at<Vec3b>(row,col)[0];
          image_mat_db->at<Vec3f>(row,col)[1]=(float)mat_frame->at<Vec3b>(row,col)[1];
          image_mat_db->at<Vec3f>(row,col)[2]=(float)mat_frame->at<Vec3b>(row,col)[2];
-         if(row<5&&col<5)
-         {
-             qDebug("orig = %d %d %d",mat_frame->at<Vec3b>(row,col)[0],mat_frame->at<Vec3b>(row,col)[1],mat_frame->at<Vec3b>(row,col)[2]);
-             qDebug("double = %lf %lf %lf",image_mat_db->at<Vec3f>(row,col)[0],image_mat_db->at<Vec3f>(row,col)[1],image_mat_db->at<Vec3f>(row,col)[2]);
-         }
             }
         }
+
+        //mul(image_mat_db,1.0/10.0);
+        //cvNormalize(image_mat_db,0,1,NORM_);
+        //cvMul(image_mat_db,image_mat_db,1.0/255.0);
+        //cvAddWeighted(image_mat_db,2.0,image_mat_db,2.0,0.0,image_mat_db);
+        //cvMul(image_mat_db,image_mat_db,image_mat_db,1.0);
         cvReleaseCapture(&capture);
+        qDebug("ffg");
+            qDebug("orig = %d %d %d",image_mat->at<Vec3b>(1,1)[0],image_mat->at<Vec3b>(1,1)[1],image_mat->at<Vec3b>(1,1)[2]);
+            qDebug("double = %lf %lf %lf",image_mat_db->at<Vec3f>(1,1)[0],image_mat_db->at<Vec3f>(1,1)[1],image_mat_db->at<Vec3f>(1,1)[2]);
+
         char* image1 = "TestMat/testMatUchar.ppm";
         char* image2 = "TestMat/testMatDb.ppm";
         imwrite(image1, *image_mat);
@@ -463,9 +469,9 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, do
 
     cvframe_=NULL;
     //workstady=0;
-    CvCapture* capture =cvCreateFileCapture(videofilename_in);
-    //CvCapture* capture = cvCreateCameraCapture(CV_CAP_ANY);
-    //assert(capture);
+    //CvCapture* capture =cvCreateFileCapture(videofilename_in);
+    CvCapture* capture = cvCreateCameraCapture(CV_CAP_ANY);
+    assert(capture);
     //this->fps= cvGetCaptureProperty(capture,CV_CAP_PROP_FPS);       //FIXME!
     fps=30;
     //int framePortion=30*5;
@@ -478,6 +484,7 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, do
     int* teor_freq=(int*)malloc(sizeof(int)*(portion/2+1));
     for(int i = 0; i<portion/2+1; i++){ teor_freq[i]=0;}
     int tmp_ind=0;
+    Mat* image_mat_db_buf;
     cvNamedWindow("original1",CV_WINDOW_AUTOSIZE);
 QTime tt;
     while(1)
@@ -496,8 +503,10 @@ QTime tt;
                 //frames[framesRed]->create(mat_frame->rows, mat_frame->cols,CV_8UC(3));
                 //mat_frame->copyTo(*frames[framesRed]);
                 if(framesRed==0){
+                     qDebug("frw = %d,frh= %d",mat_frame->cols,mat_frame->rows);
                     this->frameHeightOr=this->blured_frames[0]->rows;
                     this->frameWidthOr=this->blured_frames[0]->cols;
+                     image_mat_db_buf = new Mat(mat_frame->rows,mat_frame->cols,CV_32FC(3));
                     LengthRend=frameHeightOr*frameWidthOr*3;}
                 //IplImage cvBlframe(*mat_frame);
                 cvShowImage("original1",cvframe_);
@@ -517,14 +526,16 @@ QTime tt;
                     qDebug("portion=%d",portion);
                     qDebug("fps1=%lf",Pr1->getFPS());*/
                 }
+                blured_frames_db[framesRed] = new Mat(mat_frame->rows,mat_frame->cols,CV_32FC(3));
                 framesRed++;
                 currentPortion++;
+
                 if(currentPortion==this->portion+1)
                 {
                     mode=2;
                 }
                 wait_ = (int)(100.0/3.0-tt.elapsed());
-                //qDebug("wait=%d",wait_);
+                qDebug("wait=%d",wait_);
                 if(wait_<=0){wait_=1;}
                 char c=cvWaitKey(wait_);
                 if(c==27){break;}
@@ -538,12 +549,33 @@ QTime tt;
                 //frames[framesRed]= new Mat;
                 //blured_frames[framesRed]= new Mat;
                 Mat* mat_frame = new Mat(cvframe_);
+                for(int row=0; row<mat_frame->rows;row++)
+                {
+                    for(int col=0; col<mat_frame->cols; col++)
+                    {
+                 image_mat_db_buf->at<Vec3f>(row,col)[0]=(float)mat_frame->at<Vec3b>(row,col)[0];
+                 image_mat_db_buf->at<Vec3f>(row,col)[1]=(float)mat_frame->at<Vec3b>(row,col)[1];
+                 image_mat_db_buf->at<Vec3f>(row,col)[2]=(float)mat_frame->at<Vec3b>(row,col)[2];
+                    }
+                }
                 //blured_frames[framesRed]= mat_frame;
                 //frames[framesRed]->create(mat_frame->rows, mat_frame->cols,CV_8UC(3));
                 //mat_frame->copyTo(*frames[framesRed]);
-                Pr1->render(mat_frame,LengthRend,frameHeightOr,frameWidthOr,portion,portion_ind);
+                //Pr1->render(mat_frame,LengthRend,frameHeightOr,frameWidthOr,portion,portion_ind);
+                render(image_mat_db_buf,portion_ind);
+                for(int row=0; row<mat_frame->rows;row++)
+                {
+                    for(int col=0; col<mat_frame->cols; col++)
+                    {
+                    mat_frame->at<Vec3b>(row,col)[0]=(int)image_mat_db_buf->at<Vec3f>(row,col)[0];
+                    mat_frame->at<Vec3b>(row,col)[1]=(int)image_mat_db_buf->at<Vec3f>(row,col)[1];
+                    mat_frame->at<Vec3b>(row,col)[2]=(int)image_mat_db_buf->at<Vec3f>(row,col)[2];
+                    }
+                }
                 //IplImage cvBlframe(*mat_frame);
+                //qDebug("8");
                 cvShowImage("original1",cvframe_);
+                //qDebug("9");
                 portion_ind++;
                 if(portion_ind>=portion){
                     portion_ind=0;
@@ -555,7 +587,7 @@ QTime tt;
                 framesRed++;
                 //currentPortion++;
                 wait_ = 33-(int)tt.elapsed();
-                //qDebug("wait=%d",wait_);
+                qDebug("wait=%d",wait_);
                 if(wait_<=0){wait_=1;}
                 char c=cvWaitKey(wait_);
                 if(c==27){break;}
@@ -661,15 +693,21 @@ QTime tt;
                     }
                     break;*/
                 case 9:
-                    //mode =1;
+                    Pr1->VectorToFrames_db(Pr1->getAllFrames(),blured_frames_db,Pr1->getFrW(),Pr1->getFrH(),Pr1->getNFr());
+                    break;
+                case 10:
+                    PyrUpBlured(16,0,portion);
+
                     break;
                 case 11:
+                    mode =1;
                     break;
                 }
                 stady++;
                 framesRed++;
                 currentPortion++;
                 wait_ = 33-tt.elapsed();
+                qDebug("wait=%d",wait_);
                 if(wait_<=0){wait_=1;}
                 char c=cvWaitKey(wait_);
                 if(c==27){break;}
@@ -760,4 +798,117 @@ void VideoReader::createProcessor(processor* Pr1)
     qDebug("time elapsed: %d ms",tt.elapsed());*/
 
 
+}
+
+void VideoReader::normalize(Mat* src, double factor)
+{
+    for(int row=0; row<src->rows;row++)
+    {
+        for(int col=0; col<src->cols; col++)
+        {
+            src->at<Vec3f>(row,col)[0]=src->at<Vec3f>(row,col)[0]/factor;
+            src->at<Vec3f>(row,col)[1]=src->at<Vec3f>(row,col)[1]/factor;
+            src->at<Vec3f>(row,col)[2]=src->at<Vec3f>(row,col)[2]/factor;
+        }
+    }
+}
+
+void VideoReader::rgb2yiq(Mat* src)
+{
+    double tmp[3];                  //FIXME BUG FIXED
+    for(int row=0; row<src->rows;row++)
+    {
+        for(int col=0; col<src->cols; col++)
+        {
+       tmp[0]=src->at<Vec3f>(row,col)[2];
+       tmp[1]=src->at<Vec3f>(row,col)[1];
+       tmp[2]=src->at<Vec3f>(row,col)[0];
+       src->at<Vec3f>(row,col)[2] = tmp[0]*rgb2yiqCoef[0] + tmp[1]*rgb2yiqCoef[1] + tmp[2]*rgb2yiqCoef[2];
+       src->at<Vec3f>(row,col)[1] = tmp[0]*rgb2yiqCoef[3] + tmp[1]*rgb2yiqCoef[4] + tmp[2]*rgb2yiqCoef[5];
+       src->at<Vec3f>(row,col)[0] = tmp[0]*rgb2yiqCoef[6] + tmp[1]*rgb2yiqCoef[7] + tmp[2]*rgb2yiqCoef[8];
+        }
+    }
+}
+
+void VideoReader::YIQ2RGBnormalizeColorChannels(Mat* src)
+{
+    double tmp[3];                      //FIXME BUG FIXED
+    for(int row=0; row<src->rows;row++)
+    {
+        for(int col=0; col<src->cols; col++)
+        {
+            tmp[0]=src->at<Vec3f>(row,col)[2];
+            tmp[1]=src->at<Vec3f>(row,col)[1];
+            tmp[2]=src->at<Vec3f>(row,col)[0];
+            src->at<Vec3f>(row,col)[2] = tmp[0]*yiq2rgbCoef[0] + tmp[1]*yiq2rgbCoef[1] + tmp[2]*yiq2rgbCoef[2];
+            src->at<Vec3f>(row,col)[1] = tmp[0]*yiq2rgbCoef[3] + tmp[1]*yiq2rgbCoef[4] + tmp[2]*yiq2rgbCoef[5];
+            src->at<Vec3f>(row,col)[0] = tmp[0]*yiq2rgbCoef[6] + tmp[1]*yiq2rgbCoef[7] + tmp[2]*yiq2rgbCoef[8];
+            double normfactor = 1.0;
+            if(src->at<Vec3f>(row,col)[0] > 1.0){
+                normfactor=src->at<Vec3f>(row,col)[0];
+            }
+            if((src->at<Vec3f>(row,col)[1] > 1.0)&&(src->at<Vec3f>(row,col)[1]>normfactor)){
+                normfactor=src->at<Vec3f>(row,col)[1];
+            }
+            if((src->at<Vec3f>(row,col)[2] > 1.0)&&(src->at<Vec3f>(row,col)[2]>normfactor)){
+                normfactor=src->at<Vec3f>(row,col)[2];
+            }
+            if(normfactor > 1.0)
+            {
+                src->at<Vec3f>(row,col)[0]=src->at<Vec3f>(row,col)[0]/normfactor;
+                src->at<Vec3f>(row,col)[1]=src->at<Vec3f>(row,col)[1]/normfactor;
+                src->at<Vec3f>(row,col)[2]=src->at<Vec3f>(row,col)[2]/normfactor;
+            }
+        }
+    }
+}
+
+void VideoReader::render(Mat* frame, int portion_index)
+{
+   // qDebug("1");
+    normalize(frame,255.0);
+     //   qDebug("2");
+    rgb2yiq(frame);
+     //   qDebug("3");
+    sumVector(frame,blured_frames_db[portion_index],frame);
+      //  qDebug("4");
+    YIQ2RGBnormalizeColorChannels(frame);
+      //  qDebug("5");
+    rgbBoarder(frame);
+      //  qDebug("6");
+    normalize(frame,1.0/255.0);
+     //   qDebug("7");
+}
+
+void VideoReader::rgbBoarder(Mat* src)
+{
+    for(int row=0; row<src->rows;row++)
+    {
+        for(int col=0; col<src->cols; col++)
+        {
+            for(int ch = 0 ; ch < 3 ; ch++)
+            {
+                if(src->at<Vec3f>(row,col)[ch]>1)
+                {
+                    {src->at<Vec3f>(row,col)[ch]=1;}
+                }
+                    if(src->at<Vec3f>(row,col)[ch]<0)
+                    {src->at<Vec3f>(row,col)[ch]=0;}
+
+            }
+        }
+    }
+}
+
+void VideoReader::sumVector(Mat* src1, Mat *src2, Mat* dst)
+{
+    for(int row=0; row<src1->rows;row++)
+    {
+        for(int col=0; col<src1->cols; col++)
+        {
+        dst->at<Vec3f>(row,col)[0]= src1->at<Vec3f>(row,col)[0]+ src2->at<Vec3f>(row,col)[0];
+        dst->at<Vec3f>(row,col)[1]= src1->at<Vec3f>(row,col)[1]+ src2->at<Vec3f>(row,col)[1];
+        dst->at<Vec3f>(row,col)[2]= src1->at<Vec3f>(row,col)[2]+ src2->at<Vec3f>(row,col)[2];
+        }
+    }
 }

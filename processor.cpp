@@ -248,6 +248,28 @@ void processor::VectorToFrames(double* src, Mat** dst, int frWidth, int frHeight
     }
 }
 
+void processor::VectorToFrames_db(double* src, Mat** dst, int frWidth, int frHeight, int NofFrames)
+{
+    long rowD= (long)NofFrames*(long)frHeight;
+    long colD=(long)rowD*(long)frWidth;
+    int invCh =0;
+    for(int ch = 2; ch >= 0; ch--)
+    //for(int ch = 0; ch < 3; ch++)     //FIXME
+    {
+        for(int col = 0; col < frWidth; col++)
+        {
+            for(int row = 0; row < frHeight; row++)
+            {
+                for(int t = 0; t < NofFrames; t++)
+                {
+                    dst[t]->at<Vec3f>(row,col).val[ch] = src[invCh*colD+col*rowD+row*NofFrames+t];
+                }
+            }
+        }
+        invCh++;
+    }
+}
+
 void processor::rgb2yiq(double* srcDst, int frWidth, int frHeight, int NofFrames)
 {
     long chD=(long)NofFrames*(long)frHeight*(long)frWidth;
