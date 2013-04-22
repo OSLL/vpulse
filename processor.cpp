@@ -118,7 +118,7 @@ fclose(stream);
 
 //==============================
 
-void PrintDataFrame(double* src, int num_of_fr, const char* filename, int height_fr, int width_fr)
+void processor::PrintDataFrame(double* src, int num_of_fr, const char* filename, int height_fr, int width_fr)
 {
         FILE * stream;
                 if ((stream=fopen(filename, "w")) != 0)
@@ -132,13 +132,13 @@ void PrintDataFrame(double* src, int num_of_fr, const char* filename, int height
                     fprintf(stream,"\n \t row = %d \n\n",row_id);
                     for(int curr_id1 = 0; curr_id1 < num_of_fr; curr_id1++)
                     {
-
-                        fprintf(stream, "%d. \t %lf || \t %lf || \t %lf",curr_id1,
+                        if((col_id>width_fr/2-5)&&(col_id<width_fr/2+5)&&(row_id>height_fr/2-5)&&(row_id<height_fr/2+5))
+                        {fprintf(stream, "%d. \t %lf || \t %lf || \t %lf",curr_id1,
                                 src[curr_id1 + row_id*num_of_fr + col_id*num_of_fr*height_fr],
                                 src[curr_id1 + row_id*num_of_fr + col_id*num_of_fr*height_fr + num_of_fr*height_fr*width_fr],
                                 src[curr_id1 + row_id*num_of_fr + col_id*num_of_fr*height_fr + num_of_fr*height_fr*width_fr*2]);
                         fputc('\n',stream);
-
+                        }
                     };
                 }
             }
@@ -406,7 +406,7 @@ void processor::applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long l
     //dst[9][0]=src[9][0];
     //dst[9][1]=src[9][1];
     teoretical_rate_ind[teoretical_rate_ind_tmp]++;
-    qDebug("ind = %d",teoretical_rate_ind[teoretical_rate_ind_tmp]);
+    //qDebug("ind = %d",teoretical_rate_ind[teoretical_rate_ind_tmp]);
 }
 
 void processor::sumVector(double* src1, double *src2, double* dst, long len)
@@ -504,7 +504,7 @@ void processor::work(double fLow, double fHight, double ampFactor)
     //for(int i = 0; i< this->NumberOfFrames; i++)
     //{
         //sprintf(frame_filename, "PulseSignal/fft_frame.log");
-        //PrintDataFrame(this->AllFrames,this->NumberOfFrames,frame_filename,this->frameHeight,this->frameWidth);
+        //PrintDataFrame(this->AllFrames,this->NumberOfFrames,frame_filename_fft,this->frameHeight,this->frameWidth);
     //}
 
     //this->yiq2rgb(this->AllFrames,this->frameWidth,this->frameHeight, this->NumberOfFrames);
@@ -609,14 +609,14 @@ void processor:: countPulse(double* res, double ampFact)
     }
     //qDebug("buf[0]=%lf,buf[5]=%lf,buf[15]=%lf",buf[0],buf[5],buf[15]);
     copyVector(&AllFrames[frameHeight*NumberOfFrames*(widthCenter-widthInterval)+heightCenter*NumberOfFrames],buf,length1);
-    for(int i=widthCenter-widthInterval+1; i<widthCenter+widthInterval; i++)
-    {
-        for(int j=heightCenter-2;j <heightCenter+2; j++ ){
-        //int j = heightCenter;
-        //int i = widthCenter;
+    //for(int i=widthCenter-widthInterval+1; i<widthCenter+widthInterval; i++)
+    //{
+        //for(int j=heightCenter-2;j <heightCenter+2; j++ ){
+        int j = heightCenter;
+        int i = widthCenter;
         sumVector(buf,&AllFrames[frameHeight*NumberOfFrames*i+j*NumberOfFrames],buf,length1);
-        }
-    }
+    //    }
+    //}
     //=====find min/max
     int flag;//=0 - down; =1 - up
     int oldFlag=0;
@@ -633,7 +633,7 @@ void processor:: countPulse(double* res, double ampFact)
         }else{
             flag=1;
         }
-        if((oldFlag!=flag)&&(i!=0)&&(fabs(buf[i])>=amp_8))
+        if((oldFlag!=flag)&&(i!=0)&&(fabs(buf[i])>=0.0))
         {
             qDebug("buf[%d]=%lf,buf[%d]=%lf",i,buf[i],i+1,buf[i+1]);
                 if(stady==0){stady++;}else{

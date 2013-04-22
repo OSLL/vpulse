@@ -77,6 +77,7 @@ public:
     //tmp==================
     void PrintData(double* src, long len, const char* filename);
     void countPulseRate(double* res);
+    void PrintDataFrame(double* src, int num_of_fr, const char* filename, int height_fr, int width_fr);
     //=====================
     fftw_complex* get_out_fft(void);
     fftw_complex* get_in_ifft(void);

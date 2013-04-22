@@ -32,19 +32,19 @@ int main(int argc, char *argv[])
     w.show();
 
 
-    char* filename_in = "palm.MOV";
+    char* filename_in = "palms3.MOV";
     //char* filename_out = "face2";
 
     VideoReader* Curr_video=new VideoReader();
     processor* Pr1=new processor();
-    float fr1= 20.0/60.0;
+    float fr1= 70.0/60.0;
     float fr2= 100.0/60.0;
-    double ampFactor = 60.0;
+    double ampFactor = 100.0;
     Curr_video->CVReadVideoRT(filename_in,Pr1,fr1,fr2,ampFactor);
 /*
 Curr_video->MatTest(filename_in);
-qDebug("MatTestDone");
-*/
+qDebug("MatTestDone");*/
+
 
 
     //Pr1->init(90,37,33,30);
@@ -86,7 +86,7 @@ qDebug("MatTestDone");
 
 
 
-    double* summSignal;
+    /*double* summSignal;
     Curr_video->tmpframereader(filename_in);
     int i=0;
     while(Curr_video->getNumberOfFrames()>Curr_video->get_portion()*(i+1))
@@ -96,8 +96,9 @@ qDebug("MatTestDone");
         Pr1->AddPulseToFrames(&Curr_video->getFrames()[Curr_video->get_portion()*i],summSignal,Curr_video->get_portion());
         qDebug("time elapsed: %d ms",tt.elapsed());
         i++;
-    }
-    Pr1->freeRendBuff();
+    }*/
+
+    //Pr1->freeRendBuff();
 
 
 

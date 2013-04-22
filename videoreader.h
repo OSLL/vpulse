@@ -49,10 +49,10 @@ public:
     void MatTest(char* f_name);
 
     /*Mat**/ IplImage* cvframe_;
-void normalize(Mat* src, double factor);
-void rgb2yiq(Mat* src);
+void normalize(Mat* src, float factor);
+void rgb2yiq(Mat* src,Mat* dst, float factor, Mat* add);
 void YIQ2RGBnormalizeColorChannels(Mat* src);
-void render(Mat* frame, int portion_index);
+void render(Mat* frame,Mat* frame_db_buf, int portion_index);
 void sumVector(Mat* src1, Mat *src2, Mat* dst);
 void rgbBoarder(Mat* src);
 
