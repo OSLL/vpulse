@@ -1,7 +1,7 @@
 #include "videoreader.h"
 
 VideoReader::VideoReader():
-    portion(90)
+    portion(135)
 {
     av_register_all();
     //this->frames=
@@ -470,15 +470,20 @@ void VideoReader::MatTest(char* f_name)
         imwrite(image2, *image_mat_db);
 }
 
-void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, double fLow, double fHight,double ampFactor)
+void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, double fLow, double fHight,double ampFactor, int source, QTextEdit* memo)
 {
     //QTime tt;
 
     cvframe_=NULL;
     //workstady=0;
-    CvCapture* capture =cvCreateFileCapture(videofilename_in);
-    //CvCapture* capture = cvCreateCameraCapture(CV_CAP_ANY);
-    //assert(capture);
+    CvCapture* capture;
+    if(source==2){
+    capture =cvCreateFileCapture(videofilename_in);
+    }else{if(source == 1){
+    capture = cvCreateCameraCapture(CV_CAP_ANY);
+    assert(capture);
+        }else{exit;}
+    }
     //this->fps= cvGetCaptureProperty(capture,CV_CAP_PROP_FPS);       //FIXME!
     fps=30;
     //int framePortion=30*5;
@@ -494,7 +499,7 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, do
     Mat* image_mat_db_buf;
     cvNamedWindow("original1",CV_WINDOW_AUTOSIZE);
     //loose 1st second:
-    for (int ll = 0; ll<60; ll++)
+    for (int ll = 0; ll<5; ll++)
     {
         cvframe_=/*(Mat*)*/cvQueryFrame(capture);
         char c=cvWaitKey(33);
@@ -702,7 +707,8 @@ QTime tt;
                     qDebug("Rate_t=%lf, tmp = %lf",rate_t*60.0,1.0/rate_t*60.0);
                     double rate;
                     Pr1->countPulse(&rate,ampFactor);
-                    qDebug("Rate=%lf",1.0/rate*60.0);
+                    memo->append("Rate=");
+                    memo->append(QString::number(60.0/rate));
                 case 8:
                     Pr1->AllocRendBuff(LengthRend,Pr1->getNFr());
                     break;

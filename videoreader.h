@@ -4,8 +4,17 @@
 #include "Conf.h"
 //#include <qobject.h>
 #include "processor.h"
+#include <opencv/cv.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+
+const int FRAMES_MAX =1000;
+
 using namespace cv;
 using namespace std;
+
+class processor;
 
 class VideoReader
 {
@@ -40,7 +49,7 @@ public:
     void CVReadVideo(const char* videofilename_in);
     void CVWriteVideo(const char* videofilename_out);
 
-    void CVReadVideoRT(const char* videofilename_in, processor* Pr1, double fLow, double fHight,double ampFactor);
+    void CVReadVideoRT(const char* videofilename_in, processor* Pr1, double fLow, double fHight,double ampFactor, int source, QTextEdit* memo);
     void createProcessor(processor* Pr1);
     void tmpframereader(const char* videofilename_in);
 

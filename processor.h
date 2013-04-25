@@ -3,6 +3,7 @@
 
 #include "Conf.h"
 using namespace cv;
+using namespace std;
 
 class processor
 {

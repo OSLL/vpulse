@@ -7,6 +7,7 @@
 #include<QtGui/QPushButton>
 #include<QtGui/QPixmap>
 #include <QTime>
+#include <QTextEdit>
 #include "mainwindow.h"
 #ifndef INT64_C
 #define INT64_C(c) (c ## LL)
@@ -32,7 +33,7 @@ extern "C" {
 #include <iostream>
 #include <QDir>
 
-const int FRAMES_MAX =1000;
+
 const int PRateInt =60;
 typedef float transRgbYiqMatr[9];
 const transRgbYiqMatr rgb2yiqCoef={0.2989, 0.587, 0.144, 0.5959, -0.2744, -0.3216, 0.2115, -0.5229, 0.3114};

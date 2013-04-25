@@ -660,7 +660,8 @@ void processor:: countPulse(double* res, double ampFact)
     //const char* f_name1 = "Freq_pulse_buffer.txt";
     //PrintDataDb(buf,length1,f_name1);
     free(buf);
-    *res= (double)globNum/(double)samplingRate/(double)term;           //FIXME!
+    //*res= (double)globNum/(double)samplingRate/(double)term;           //FIXME!
+    *res = (double)globNum/(double)term*0.033;
     qDebug("nofpoints=%d",globNum);
 }
 
