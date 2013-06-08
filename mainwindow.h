@@ -54,8 +54,10 @@ private:
     float aFact;
     // end temporary
 
-    VideoReader* Curr_video;
-    processor* Pr1;
+    int work_index;
+
+    VideoReader* Curr_video/*[10]*/;            //FiXME
+    processor* Pr1/*[10]*/;
 
     QGroupBox* createGroupBox();
     QGroupBox* createGroupBoxRight();

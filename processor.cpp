@@ -376,9 +376,9 @@ void processor::copyFFTW_cpx(fftw_complex* src, fftw_complex* dst, long len)
     }
 }
 
-void processor::applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long len, int* teoretical_rate_ind)
+void processor::applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long len/*, int* teoretical_rate_ind*/)
 {
-    int k=0;int teoretical_rate_ind_tmp=0;
+    int k=0;//int teoretical_rate_ind_tmp=0;
     double value=0.0;
     double value1=0.0;
     for(int i=0; i<len; i++)
@@ -392,7 +392,7 @@ void processor::applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long l
             value1= dst[i][0]*dst[i][0]+dst[i][1]*dst[i][1];
             if(value1>value)
             {
-                teoretical_rate_ind_tmp=i;
+                //teoretical_rate_ind_tmp=i;
                 value=value1;
             }
             k++;
@@ -405,7 +405,7 @@ void processor::applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long l
     }
     //dst[9][0]=src[9][0];
     //dst[9][1]=src[9][1];
-    teoretical_rate_ind[teoretical_rate_ind_tmp]++;
+    //teoretical_rate_ind[teoretical_rate_ind_tmp]++;
     //qDebug("ind = %d",teoretical_rate_ind[teoretical_rate_ind_tmp]);
 }
 
@@ -625,7 +625,7 @@ void processor:: countPulse(double* res, double ampFact)
     int stady=0;
     int term = 0;
     int index1;
-    double amp_8= ampFact/6.0;
+    double amp_8= ampFact/8.0;
     for(int i=0; i<length1-1; i++)
     {
         if((buf[i]<=buf[i+1])/*&&(fabs(buf[i])>=amp_4)*/){
@@ -660,9 +660,10 @@ void processor:: countPulse(double* res, double ampFact)
     //const char* f_name1 = "Freq_pulse_buffer.txt";
     //PrintDataDb(buf,length1,f_name1);
     free(buf);
-    //*res= (double)globNum/(double)samplingRate/(double)term;           //FIXME!
-    *res = (double)globNum/(double)term*0.033;
+    *res= (double)globNum/(samplingRate*(double)term);           //FIXME!
+    //*res = (double)globNum/((double)term*fps);
     qDebug("nofpoints=%d",globNum);
+     qDebug("srate=%lf",samplingRate);
 }
 
 void processor::countPulseRate(double* res)

@@ -52,8 +52,15 @@ MainWindow::MainWindow(QWidget *parent) :
     sliderHint->setPalette(QPalette(QColor(255,0,0,100)));
     sliderHint->hide();
 
-    VideoReader* Curr_video=new VideoReader();
-    Pr1=new processor();
+    //initialization
+    Pr1=NULL;
+    work_index=-1;          //FIXME
+    frLow= 53;
+    frHigh=85;
+    frLow = frLow/60.0;
+    frHigh = frHigh/60.0;
+    aFact=15;
+    source=1;
 
 }
 
@@ -123,6 +130,9 @@ QGroupBox* MainWindow::createGroupBox(void)
     QObject::connect(frL,SIGNAL(sliderMoved(int)),this,SLOT(frLchanged(int)));
     QObject::connect(frL,SIGNAL(sliderPressed()),this,SLOT(showHintLb()));
     QObject::connect(frL,SIGNAL(sliderReleased()),this,SLOT(hideHintLb()));
+    //frL->setValue(83);
+    frL->setSliderPosition(53);
+    frL->setValue(53);
 
      frH = new QSlider(Qt::Horizontal);
     frH->setAutoFillBackground(true);
@@ -131,6 +141,8 @@ QGroupBox* MainWindow::createGroupBox(void)
     QObject::connect(frH,SIGNAL(sliderMoved(int)),this,SLOT(frHchanged(int)));
     QObject::connect(frH,SIGNAL(sliderPressed()),this,SLOT(showHintLb()));
     QObject::connect(frH,SIGNAL(sliderReleased()),this,SLOT(hideHintLb()));
+    frH->setSliderPosition(85);
+    frH->setValue(85);
 
      ampFact = new QSlider(Qt::Horizontal);
     ampFact->setAutoFillBackground(true);
@@ -139,6 +151,8 @@ QGroupBox* MainWindow::createGroupBox(void)
     QObject::connect(ampFact,SIGNAL(sliderMoved(int)),this,SLOT(Ampchanged(int)));
     QObject::connect(ampFact,SIGNAL(sliderPressed()),this,SLOT(showHintLb()));
     QObject::connect(ampFact,SIGNAL(sliderReleased()),this,SLOT(hideHintLb()));
+    ampFact->setSliderPosition(15);
+    ampFact->setValue(15);
 
      frHL= new QLabel(tr("High frequency"));
      frLL= new QLabel(tr("Low frequency"));
@@ -172,8 +186,9 @@ QGroupBox* MainWindow::createGroupBoxRight()
      FileL = new QLabel(tr("File"));
      QObject::connect(CamB,SIGNAL(clicked()),this,SLOT(source_changed()));
      QObject::connect(FileB,SIGNAL(clicked()),this,SLOT(source_changed()));
+     CamB->setChecked(true);
 
-     StartBt = new QPushButton(tr("Start"));
+     StartBt = new QPushButton(tr("Show pulse"));
      StartBt->setFixedHeight(50);
      StartBt->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Fixed);
      QObject::connect(StartBt,SIGNAL(clicked()),this,SLOT(work()));
@@ -193,25 +208,28 @@ QGroupBox* MainWindow::createGroupBoxRight()
 
 void MainWindow::work(void)
 {
+    work_index++;
     qDebug("work");
-    if(Curr_video==NULL){
+    if(Pr1==NULL){
     Curr_video=new VideoReader();
     Pr1=new processor();
     }else{
-        delete(Curr_video);
+        //delete(Curr_video);
         delete(Pr1);
-        Curr_video=new VideoReader();
+        //Curr_video=new VideoReader();
         Pr1=new processor();
+        Curr_video->free_frames();
     }
     if(frLow<frHigh){
         qDebug("%f,%f,%f,%d",frLow,frHigh,aFact,source);
         //filename_in = "palm.MOV";
-        frLow = frLow/60.0;
-        frHigh = frHigh/60.0;
+        //frLow = frLow/60.0;
+        //frHigh = frHigh/60.0;
     Curr_video->CVReadVideoRT(filename_get.toAscii().data(),Pr1,frLow,frHigh,aFact,source,memo);
     }else{
         memo->append("Error! Low frequency is more than Hight!");
     }
+    Pr1->freeRendBuff();
 }
 
 void MainWindow::source_changed(void)
@@ -265,7 +283,7 @@ void MainWindow::frLchanged(int val)
     int y = tmp->geometry().y()+50;
     sliderHint->move(x,y);
     sliderHint->setText(QString::number(tmp->sliderPosition()));
-    frLow= val;
+    frLow= val/60.0;
     emit send_frL(val);
 }
 
@@ -276,7 +294,7 @@ void MainWindow::frHchanged(int val)
     int y = tmp->geometry().y()+50;
     sliderHint->move(x,y);
     sliderHint->setText(QString::number(tmp->sliderPosition()));
-    frHigh= val;
+    frHigh= val/60.0;
     emit send_frH(val);
 }
 

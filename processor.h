@@ -41,7 +41,7 @@ public:
     int* createFreqMask(double fLow, double fHight);
     void copyVector(double* src, double* dst, long len);
     void copyFFTW_cpx(fftw_complex* src, fftw_complex* dst, long len);
-    void applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long len,int* teoretical_rate_ind);
+    void applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long len/*,int* teoretical_rate_ind*/);
     void sumVector(double* src1, double *src2, double* dst, long len);
     void rgbBoarder(double* src, long len);
     void rgbBoarder2(double* src, long len);

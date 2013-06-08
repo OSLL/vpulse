@@ -32,7 +32,7 @@ private:
     int frameWidthOr;
     long LengthRend;
 public:
-
+    void free_frames(void);
     int ReadFrames(const char* videofilename_in, int pyramid_level);
     int PyrUpBlured(int pyramid_level,int ind_start, int ind_end);
     int PrintFrames(void);

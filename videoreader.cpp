@@ -11,13 +11,21 @@ VideoReader::VideoReader():
     //this->frames=cv::allocate<Mat(100,200,CV_8UC(3))>(300);
 }
 
+void  VideoReader::free_frames(void)
+{
+    for(int i = 0; i< portion-1; i++)
+    {
+        delete(this->blured_frames_db[i]);
+        delete(this->blured_frames[i]);
+    }
+}
  VideoReader::~VideoReader()
 {
     //template<typename _Tp> void deallocate(_Tp* ptr, size_t n)
      //template<Mat> void deallocate(this->frames,100);
      //Mat::allocator
      //cv::deallocate(this->frames,300);
-
+    free_frames();
 
 
 }
@@ -485,7 +493,12 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, do
         }else{exit;}
     }
     //this->fps= cvGetCaptureProperty(capture,CV_CAP_PROP_FPS);       //FIXME!
+
     fps=30;
+    QString fps_out;
+    fps_out.append("fps=");
+    fps_out.append(QString::number(fps));
+    //memo->append(fps_out);
     //int framePortion=30*5;
     int framesRed=0;
     int currentPortion=0;
@@ -493,8 +506,8 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, do
     int stady=0;
     int wait_=0;
     int portion_ind=0;
-    int* teor_freq=(int*)malloc(sizeof(int)*(portion/2+1));
-    for(int i = 0; i<portion/2+1; i++){ teor_freq[i]=0;}
+    //int* teor_freq=(int*)malloc(sizeof(int)*(portion/2+1));
+    //for(int i = 0; i<portion/2+1; i++){ teor_freq[i]=0;}
     int tmp_ind=0;
     Mat* image_mat_db_buf;
     cvNamedWindow("original1",CV_WINDOW_AUTOSIZE);
@@ -502,9 +515,10 @@ void VideoReader::CVReadVideoRT(const char* videofilename_in, processor* Pr1, do
     for (int ll = 0; ll<5; ll++)
     {
         cvframe_=/*(Mat*)*/cvQueryFrame(capture);
-        char c=cvWaitKey(33);
+        char c=cvWaitKey(1000.0/fps);
         if(c==27){break;}
     }
+    qDebug("mode = %d, framesRed = %d",mode,framesRed);
 QTime tt;
     while(1)
     {
@@ -540,10 +554,10 @@ QTime tt;
                 if(framesRed==0)
                 {
                     Pr1->init(this->get_portion(),blured_frames[0]->rows,blured_frames[0]->cols,fps);
-                   /* qDebug("rows=%d",blured_frames[0]->rows);
+                    qDebug("rows=%d",blured_frames[0]->rows);
                     qDebug("cols=%d",blured_frames[0]->cols);
                     qDebug("portion=%d",portion);
-                    qDebug("fps1=%lf",Pr1->getFPS());*/
+                    qDebug("fps1=%lf",Pr1->getFPS());
                 }
                 blured_frames_db[framesRed] = new Mat(mat_frame->rows,mat_frame->cols,CV_32FC(3));
                 framesRed++;
@@ -553,7 +567,7 @@ QTime tt;
                 {
                     mode=2;
                 }
-                wait_ = (int)(100.0/3.0-tt.elapsed());
+                wait_ = (int)(1000.0/fps-tt.elapsed());
                 qDebug("wait=%d",wait_);
                 if(wait_<=0){wait_=1;}
                 char c=cvWaitKey(wait_);
@@ -561,6 +575,8 @@ QTime tt;
         }else{
             if(mode==1)
             {
+                //char c=cvWaitKey(1);
+                //if(c==27){break;}
                 cvframe_=/*(Mat*)*/cvQueryFrame(capture);
                 if(!cvframe_){break;}
                 tt.start();
@@ -581,6 +597,8 @@ QTime tt;
                 //frames[framesRed]->create(mat_frame->rows, mat_frame->cols,CV_8UC(3));
                 //mat_frame->copyTo(*frames[framesRed]);
                 //Pr1->render(mat_frame,LengthRend,frameHeightOr,frameWidthOr,portion,portion_ind);
+                //c=cvWaitKey(1);
+                //if(c==27){break;}
                 rgb2yiq(mat_frame,image_mat_db_buf,255.0,blured_frames_db[portion_ind]);
                 //render(mat_frame,image_mat_db_buf,portion_ind);
                 /*for(int row=0; row<mat_frame->rows;row++)
@@ -595,6 +613,7 @@ QTime tt;
                 //IplImage cvBlframe(*mat_frame);
                 //qDebug("8");
                 cvShowImage("original1",cvframe_);
+                delete(mat_frame);
                 //qDebug("9");
                 portion_ind++;
                 if(portion_ind>=portion){
@@ -606,7 +625,7 @@ QTime tt;
                 //============================================================
                 framesRed++;
                 //currentPortion++;
-                wait_ = 33-(int)tt.elapsed();
+                wait_ = (int)(1000.0/fps-tt.elapsed());
                 qDebug("wait=%d",wait_);
                 if(wait_<=0){wait_=1;}
                 char c=cvWaitKey(wait_);
@@ -620,9 +639,11 @@ QTime tt;
                 if(!cvframe_){cvDestroyWindow("original1");break;}
                 //IplImage cvBlframe(*mat_frame);
                 cvShowImage("original1",cvframe_);
+                //delete(cvframe_);
                 tt.start();
                 //QTime tt;
-                char frame_filename_fft[35];
+                //char frame_filename_fft[35];
+                QString rate_out;
                 switch(stady)
                 {
                 case 0:
@@ -647,7 +668,7 @@ QTime tt;
                         Pr1->copyVector((double*)&Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->get_in_fft(),Pr1->getNFr());
                         fftw_execute(*Pr1->get_fft_plan());
                         //ifft:compute
-                        Pr1->applyMask(Pr1->get_out_fft(),Pr1->get_in_ifft(),Pr1->get_mask(),Pr1->getNFr()/2+1,teor_freq);
+                        Pr1->applyMask(Pr1->get_out_fft(),Pr1->get_in_ifft(),Pr1->get_mask(),Pr1->getNFr()/2+1/*,teor_freq*/);
                         fftw_execute(*Pr1->get_ifft_plan());
                         //Pr1->normalize(Pr1->get_out_ifft(), (long)Pr1->getNFr(),(double)Pr1->getNFr()/ampFactor);
                         Pr1->copyVector(Pr1->get_out_ifft(), &Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->getNFr());
@@ -666,7 +687,7 @@ QTime tt;
                         Pr1->copyVector((double*)&Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->get_in_fft(),Pr1->getNFr());
                         fftw_execute(*Pr1->get_fft_plan());
                         //ifft:compute
-                        Pr1->applyMask(Pr1->get_out_fft(),Pr1->get_in_ifft(),Pr1->get_mask(),Pr1->getNFr()/2+1,teor_freq);
+                        Pr1->applyMask(Pr1->get_out_fft(),Pr1->get_in_ifft(),Pr1->get_mask(),Pr1->getNFr()/2+1/*,teor_freq*/);
                         fftw_execute(*Pr1->get_ifft_plan());
                         //Pr1->normalize(Pr1->get_out_ifft(), (long)Pr1->getNFr(),(double)Pr1->getNFr()/ampFactor);
                         Pr1->copyVector(Pr1->get_out_ifft(), &Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->getNFr());
@@ -681,7 +702,7 @@ QTime tt;
                         Pr1->copyVector((double*)&Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->get_in_fft(),Pr1->getNFr());
                         fftw_execute(*Pr1->get_fft_plan());
                         //ifft:compute
-                        Pr1->applyMask(Pr1->get_out_fft(),Pr1->get_in_ifft(),Pr1->get_mask(),Pr1->getNFr()/2+1,teor_freq);
+                        Pr1->applyMask(Pr1->get_out_fft(),Pr1->get_in_ifft(),Pr1->get_mask(),Pr1->getNFr()/2+1/*,teor_freq*/);
                         fftw_execute(*Pr1->get_ifft_plan());
                         //Pr1->normalize(Pr1->get_out_ifft(), (long)Pr1->getNFr(),(double)Pr1->getNFr()/ampFactor);
                         Pr1->copyVector(Pr1->get_out_ifft(), &Pr1->getAllFrames()[i*Pr1->getNFr()],Pr1->getNFr());
@@ -693,7 +714,7 @@ QTime tt;
                     Pr1->ClearFFT_IFFT_mask();
                     break;
                 case 7:
-                    double rate_t; //int tmp_ind_val=0;
+                    /*double rate_t; //int tmp_ind_val=0;
                     for(int ind=0; ind <portion/2+1; ind ++)
                     {
                         if(teor_freq[ind]>teor_freq[tmp_ind])
@@ -702,13 +723,16 @@ QTime tt;
                             qDebug("ind = %d",ind);
                         }
                     }
-                    rate_t= Pr1->getRealMaskFr()[tmp_ind];
+                    rate_t= Pr1->getRealMaskFr()[tmp_ind];*/
                     //free(Pr1->getRealMaskFr());             //FIXME TOPOR!
-                    qDebug("Rate_t=%lf, tmp = %lf",rate_t*60.0,1.0/rate_t*60.0);
+                    //qDebug("Rate_t=%lf, tmp = %lf",rate_t*60.0,1.0/rate_t*60.0);
                     double rate;
                     Pr1->countPulse(&rate,ampFactor);
-                    memo->append("Rate=");
-                    memo->append(QString::number(60.0/rate));
+
+                    rate_out.append("Rate=");
+                    rate_out.append(QString::number(60.0/rate));
+                    //memo->append("Rate=");
+                    memo->append(rate_out);
                 case 8:
                     Pr1->AllocRendBuff(LengthRend,Pr1->getNFr());
                     break;
@@ -732,7 +756,7 @@ QTime tt;
                 stady++;
                 framesRed++;
                 currentPortion++;
-                wait_ = 33-tt.elapsed();
+                wait_ = (int)(1000.0/fps-tt.elapsed());
                 qDebug("wait=%d",wait_);
                 if(wait_<=0){wait_=1;}
                 char c=cvWaitKey(wait_);
@@ -748,6 +772,8 @@ QTime tt;
     this->frameWidth=this->blured_frames[0]->cols;
     this->NumberOfFrames=framesRed-10; //throw out 10 last frames
     cvReleaseCapture(&capture);
+    qDebug("frames red= %d", framesRed);
+
     //qDebug("Noffr = %d, frH=%d, frW= %d",NumberOfFrames,frameHeight,frameWidth);
     //delete(Pr1);
 }
@@ -804,7 +830,7 @@ void VideoReader::CVOutputVideo(void)
     {
         IplImage cvframe(*frames[i]);
         cvShowImage("original",&cvframe);
-        char c=cvWaitKey(33);
+        char c=cvWaitKey(1000.0/fps);
         if(c==27){break;}
     }
 
