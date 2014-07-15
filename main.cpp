@@ -2,6 +2,8 @@
 #include "videoreader.h"
 #include "processor.h"
 
+#include <QCoreApplication>
+
 using namespace cv;
 using namespace std;
 
@@ -27,7 +29,6 @@ void printarray(double* src, int w, int h, int noffr)
 /*int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    MainWindow w;
     w.show();
     double* srcIm;
     double* dstIm;
@@ -70,28 +71,26 @@ void printarray(double* src, int w, int h, int noffr)
 }
 */
 
-
-
 int main(int argc, char *argv[])
 {
-    QApplication a(argc, argv);
-    MainWindow w;
-    w.show();
+    QCoreApplication a(argc, argv);
 
-
-    char* filename_in = "pal.MOV";
-
+    const string filename_in {"face.mp4"};
 
     VideoReader* Curr_video=new VideoReader();
-    Curr_video->ReadFrames(filename_in,4);
+    if (Curr_video->ReadFrames(filename_in.c_str(),4)<0)
+    {
+        cout << "Failed to read file" << endl;
+        return 0;
+    }
     Curr_video->PrintFrames();
     int sRate=30; //TODO
-    char* new_dir_name ="PulseSignal";
-    char* new_dir_name_fr_txt ="FramesInputTxt";
-    char* new_dir_name_frb_txt ="FramesBlurredTxt";
-    QDir new_dir(new_dir_name);
-    QDir new_dir_fr_txt(new_dir_name_fr_txt);
-    QDir new_dir_frb_txt(new_dir_name_frb_txt);
+    const string new_dir_name {"PulseSignal"};
+    const string new_dir_name_fr_txt {"FramesInputTxt"};
+    const string new_dir_name_frb_txt {"FramesBlurredTxt"};
+    QDir new_dir(new_dir_name.c_str());
+    QDir new_dir_fr_txt(new_dir_name_fr_txt.c_str());
+    QDir new_dir_frb_txt(new_dir_name_frb_txt.c_str());
     if(!(new_dir.exists()))
     {
         new_dir.mkpath(".");
@@ -104,8 +103,10 @@ int main(int argc, char *argv[])
     {
         new_dir_frb_txt.mkpath(".");
     }
-    char*f_name="tmp1.log";
-    char f_dir_name[strlen(new_dir_name)+strlen(f_name)+1];
+    string f_name {"tmp1.log"};
+    string f_dir_name;
+    f_dir_name.resize(new_dir_name.length()+f_name.length()+1);
+
     //f_dir_name[0]='\0';
     //strcat(f_dir_name,new_dir_name);
     //char* slesh = new char('92');
@@ -125,8 +126,8 @@ int main(int argc, char *argv[])
     //const char* f_name_AllFramesY = "AllFramesY.log";
     //const char* f_name_AllFramesI = "AllFramesI.log";
     //const char* f_name_AllFramesQ = "AllFramesQ.log";
-    float fr1=50.0/60.0;
-    float fr2= 78.0/60.0;
+    double fr1 {50.0/60.0};
+    double fr2 {78.0/60.0};
     //printf("flow= %f, fHight= %f \n", fLow, fHight);
     double ampFactor = 70.0;
     Pr1->work(fr1,fr2,ampFactor);
@@ -145,11 +146,13 @@ int main(int argc, char *argv[])
     printf("Height = %d\n",Curr_video->getFrameHeight());
     printf("Width = %d\n",Curr_video->getFrameWidth());
     delete(Pr1);
+    delete(summSignal);
     delete(Curr_video);
-    QPushButton B1("Stop",&w);
-    QObject::connect(&B1,SIGNAL(clicked()),&a,SLOT(quit()));
-    B1.show();
+    //QPushButton B1("Stop",&w);
+    //QObject::connect(&B1,SIGNAL(clicked()),&a,SLOT(quit()));
+    //B1.show();
     //printf("end\n");
-    return a.exec();
+    //return a.exec();
+    return 0;
 }
 

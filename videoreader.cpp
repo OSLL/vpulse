@@ -26,7 +26,7 @@ int VideoReader::ReadFrames(const char* videofilename_in, int pyramid_level)
 
      // Open video file
      //char* filename_in = "face.mp4";
-
+    cout << videofilename_in << endl;
      //Look header info
      if(avformat_open_input(&pFormatCtx, videofilename_in, NULL, NULL)!=0)
           {printf("Couldn't open video file  \n");return -1;} // Couldn't open file
@@ -67,7 +67,7 @@ int VideoReader::ReadFrames(const char* videofilename_in, int pyramid_level)
        return -1; // Codec not found
      }
      // Open codec
-     if(avcodec_open(pCodecCtx, pCodec)<0)
+     if(avcodec_open2(pCodecCtx, pCodec,nullptr)<0)
        return -1; // Could not open codec
 
      //Store frame
@@ -188,7 +188,8 @@ int VideoReader::ReadFrames(const char* videofilename_in, int pyramid_level)
      // Close the video file
      av_close_input_file(pFormatCtx);
 
- }
+    return 0;
+}
 
 void print_frame_txt(Mat* frame,const char* filename)
 {
@@ -214,7 +215,7 @@ void print_frame_txt(Mat* frame,const char* filename)
 
 int VideoReader::PrintFrames(void)
 {
-    if(this->frames[0]==NULL)
+   if(this->frames[0]==NULL)
     {
         printf("Error! No frames detected.\n");return(1);
     }
@@ -230,19 +231,26 @@ int VideoReader::PrintFrames(void)
             sprintf(frame_filename, "frame%d.ppm", i);
             //sprintf(frame_filename_txt, "FramesInputTxt/frame%d.txt",i);
             //sprintf(frame_filenameB_txt, "FramesBlurredTxt/frame%d.txt",i);
-            imwrite(frame_filename, *(this->frames[i]));
-
+            try
+            {
+                imwrite(frame_filename, *(this->frames[i]));
+            }
+            catch(Exception e)
+            {
+                cout << e.msg << endl;
+            }
             //print_frame_txt(this->frames[i],frame_filename_txt);
             //if((i<5)||(i>282)){
             //    print_frame_txt(this->blured_frames[i],frame_filenameB_txt);}
             //}
         }
     }
-
+ return 0;
 }
 
 int VideoReader::PyrUpBlured(int pyramid_level)
 {
+
     if(pyramid_level>=1)
     {
         for(int NofFr = 0; NofFr < this->NumberOfFrames; NofFr++)
@@ -255,6 +263,7 @@ int VideoReader::PyrUpBlured(int pyramid_level)
             }
         }
     }
+    return 0;
 }
 
 int VideoReader::AddPulseToFrames(void)
@@ -273,6 +282,7 @@ int VideoReader::AddPulseToFrames(void)
             }
         }
      }
+    return 0;
 }
 
 int VideoReader::getFrameHeight(void)

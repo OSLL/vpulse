@@ -490,6 +490,7 @@ int processor::AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, i
     }
     free(fullFrames);
     free(pulseFrames);
+    return 0;
 }
 
 
