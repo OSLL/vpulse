@@ -35,9 +35,10 @@ public:
     void VectorToFrames(double* src, Mat** dst, int frWidth, int frHeight, int NofFrames);
     int AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, int NofFrames);
     double* getAllFrames(void);
-    int getFrH(void);
-    int getFrW(void);
-    int getNFr(void);
+    std::vector<double>& receive_pixel_values(int i, int j) const;
+    int getFrH(void) const;
+    int getFrW(void) const;
+    int getNFr(void) const;
     void NearInterpolation(double* src, double* dst, int oldwidth, int oldheight, int newwidth, int newheight, int nofFr, int frameInd);
     //tmp==================
     void PrintData(double* src, long len, const char* filename);

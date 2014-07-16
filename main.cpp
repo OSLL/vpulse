@@ -139,6 +139,16 @@ int main(int argc, char *argv[])
     //free(summSignal);
     //Curr_video->AddPulseToFrames();
     Curr_video->PrintFrames();
+
+    double* frames {Pr1->getAllFrames()};
+    int framecount {Pr1->getNFr()};
+
+    vector<double> values(frames,frames+framecount*sizeof(double));
+    delete(frames);
+
+
+
+
     //Pr1->PrintData(&Pr1->getAllFrames()[0], Pr1->getFrH()*Pr1->getFrW()*Pr1->getNFr(), f_name_AllFramesY);
     //Pr1->PrintData(&Pr1->getAllFrames()[Pr1->getFrH()*Pr1->getFrW()*Pr1->getNFr()], Pr1->getFrH()*Pr1->getFrW()*Pr1->getNFr(), f_name_AllFramesI);
     //Pr1->PrintData(&Pr1->getAllFrames()[Pr1->getFrH()*Pr1->getFrW()*Pr1->getNFr()*2], Pr1->getFrH()*Pr1->getFrW()*Pr1->getNFr(), f_name_AllFramesQ);
@@ -153,6 +163,9 @@ int main(int argc, char *argv[])
     //B1.show();
     //printf("end\n");
     //return a.exec();
+
+
+
     return 0;
 }
 

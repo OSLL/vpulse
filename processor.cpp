@@ -256,7 +256,7 @@ void processor::normalize(double* src, long len, double factor)
 {
     for(long i=0; i<len; i++)
     {
-        src[i]=src[i]/factor;
+        src[i]/=factor;
     }
 }
 
@@ -499,17 +499,17 @@ double* processor::getAllFrames(void)
     return(this->AllFrames);
 }
 
-int processor::getFrH(void)
+int processor::getFrH(void) const
 {
     return(this->frameHeight);
 }
 
-int processor::getFrW(void)
+int processor::getFrW(void) const
 {
     return(this->frameWidth);
 }
 
-int processor::getNFr(void)
+int processor::getNFr(void) const
 {
     return(this->NumberOfFrames);
 }
@@ -545,3 +545,15 @@ void processor::NearInterpolation(double* src, double* dst, int oldwidth, int ol
     //_width = newWidth;
     //_height = newHeight;
 }
+
+vector<double>& processor::receive_pixel_values(int row, int col) const
+{
+    vector<double> res(this->NumberOfFrames);
+    for(int k = 0; k < (int)res.size(); k++)
+    {
+        res[k]=this->AllFrames[this->NumberOfFrames*k+this->frameWidth*row+this->frameHeight*col];  //TODO: add channel
+    }
+    return res&;
+}
+
+
