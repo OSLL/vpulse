@@ -209,47 +209,18 @@ void processor::VectorToFrames(double* src, Mat** dst, int frWidth, int frHeight
     }
 }
 
-void processor::rgb2yiq(double* srcDst, int frWidth, int frHeight, int NofFrames)
+void processor::rgb2yiq(double* srcDst, int frWidth, int frHeight, int NofFrames, bool rev)
 {
     long chD=(long)NofFrames*(long)frHeight*(long)frWidth;
-    double tmp[3];                  //FIXME BUG FIXED
-    for(long ch = 0; ch <chD; ch++)
+    const double* Coefs = rev ? &yiq2rgbCoef[0] : &rgb2yiqCoef[0];
+    for(long ch = 0; ch < chD; ch++)
     {
-        /*if((debugflag==1)&&(ch<3))
-        {
-            printf("%ld srcDst[%ld]=%lf\n",ch,ch,srcDst[ch]);
-            printf("%ld srcDst[%ld]=%lf\n",ch,ch+chD,srcDst[ch+chD]);
-            printf("%ld srcDst[%ld]=%lf\n",ch,ch+chD*2,srcDst[ch+chD*2]);
-        }*/
-       tmp[0]=srcDst[ch];
-       tmp[1]=srcDst[ch+chD];
-       tmp[2]=srcDst[ch+chD*2];
-       srcDst[ch] = tmp[0]*rgb2yiqCoef[0] + tmp[1]*rgb2yiqCoef[1] + tmp[2]*rgb2yiqCoef[2];
-       srcDst[ch+chD] = tmp[0]*rgb2yiqCoef[3] + tmp[1]*rgb2yiqCoef[4] + tmp[2]*rgb2yiqCoef[5];
-       srcDst[ch+chD*2] = tmp[0]*rgb2yiqCoef[6] + tmp[1]*rgb2yiqCoef[7] + tmp[2]*rgb2yiqCoef[8];
-       /*if((debugflag==1)&&(ch<3))
-       {
-           printf("%ld srcDst[%ld]=%lf\n",ch,ch,srcDst[ch]);
-           printf("%ld srcDst[%ld]=%lf\n",ch,ch+chD,srcDst[ch+chD]);
-           printf("%ld srcDst[%ld]=%lf\n",ch,ch+chD*2,srcDst[ch+chD*2]);
-           printf("\n\n");
-       }*/
+       double tmp[3] {srcDst[ch], srcDst[ch+chD], srcDst[ch+chD*2]};  //ugly code, could be done in one line using linear algebra
+       srcDst[ch] = tmp[0]*Coefs[0] + tmp[1]*Coefs[1] + tmp[2]*Coefs[2];
+       srcDst[ch+chD] = tmp[0]*Coefs[3] + tmp[1]*Coefs[4] + tmp[2]*Coefs[5];
+       srcDst[ch+chD*2] = tmp[0]*Coefs[6] + tmp[1]*Coefs[7] + tmp[2]*Coefs[8];
     }
 
-}
-void processor::yiq2rgb(double* srcDst, int frWidth, int frHeight, int NofFrames)
-{
-    long chD=(long)NofFrames*(long)frHeight*(long)frWidth;
-    double tmp[3];                      //FIXME BUG FIXED
-    for(long ch = 0; ch <chD; ch++)
-    {
-        tmp[0]=srcDst[ch];
-        tmp[1]=srcDst[ch+chD];
-        tmp[2]=srcDst[ch+chD*2];
-        srcDst[ch] = tmp[0]*yiq2rgbCoef[0] + tmp[1]*yiq2rgbCoef[1] + tmp[2]*yiq2rgbCoef[2];
-        srcDst[ch+chD] = tmp[0]*yiq2rgbCoef[3] + tmp[1]*yiq2rgbCoef[4] + tmp[2]*yiq2rgbCoef[5];
-        srcDst[ch+chD*2] = tmp[0]*yiq2rgbCoef[6] + tmp[1]*yiq2rgbCoef[7] + tmp[2]*yiq2rgbCoef[8];
-    }
 }
 
 void processor::normalize(double* src, long len, double factor)
@@ -333,18 +304,8 @@ void processor::sumVector(double* src1, double *src2, double* dst, long len)
 
 void processor::work(double fLow, double fHight, double ampFactor)
 {
-    //char* UGDownStack_file = "UnnormGDownStack.log";
-    //PrintDataFrame(this->AllFrames, this->NumberOfFrames, UGDownStack_file, this->frameHeight, this->frameWidth);
-    /*char* Fr_from_arr = "FramesBlurredTxt/frame_arr0.log";
-    char* Fr_from_arr1 = "FramesBlurredTxt/frame_arr1.log";
-    char* Fr_from_arr2 = "FramesBlurredTxt/frame_arr2.log";
-    char* Fr_from_arr291 = "FramesBlurredTxt/frame_arr291.log";
-    print_frame_N(0,AllFrames, this->NumberOfFrames, Fr_from_arr, this->frameHeight, this->frameWidth);
-    print_frame_N(1,AllFrames, this->NumberOfFrames, Fr_from_arr1, this->frameHeight, this->frameWidth);
-    print_frame_N(2,AllFrames, this->NumberOfFrames, Fr_from_arr2, this->frameHeight, this->frameWidth);
-    print_frame_N(290,AllFrames, this->NumberOfFrames, Fr_from_arr291, this->frameHeight, this->frameWidth);*/
-    this->normalize((double*)this->AllFrames,(long) this->NumberOfFrames*this->frameHeight*this->frameWidth*3,255.0);
-    this->rgb2yiq(this->AllFrames,this->frameWidth,this->frameHeight, this->NumberOfFrames);
+    this->normalize(this->AllFrames,(long) this->NumberOfFrames*this->frameHeight*this->frameWidth*3,255.0);
+    this->rgb2yiq(this->AllFrames,this->frameWidth,this->frameHeight, this->NumberOfFrames,false);
     printf("flow= %f, fHight= %f \n", fLow, fHight);
     //char* GDownStack_file = "GDownStack.log";
     //PrintDataFrame(this->AllFrames, this->NumberOfFrames, GDownStack_file, this->frameHeight, this->frameWidth);
@@ -397,15 +358,14 @@ void processor::work(double fLow, double fHight, double ampFactor)
     free(out_ifft);
 
     //print fft_results
-    //char frame_filename[35];
-    //for(int i = 0; i< this->NumberOfFrames; i++)
-    //{
-        //sprintf(frame_filename, "PulseSignal/fft_frame.log");
-        //PrintDataFrame(this->AllFrames,this->NumberOfFrames,frame_filename,this->frameHeight,this->frameWidth);
-    //}
+    /*const char frame_filename[35] = "PulseSignal/fft_frame.log";
+    for(int i = 0; i< this->NumberOfFrames; i++)
+    {
+      PrintDataFrame(this->AllFrames,this->NumberOfFrames,frame_filename,this->frameHeight,this->frameWidth);
+    }*/
 
-    //this->yiq2rgb(this->AllFrames,this->frameWidth,this->frameHeight, this->NumberOfFrames);
-    //this->normalize((double*)this->AllFrames,(long) this->NumberOfFrames*this->frameHeight*this->frameWidth*3,(double)1.0/255.0);
+    this->rgb2yiq(this->AllFrames,this->frameWidth,this->frameHeight, this->NumberOfFrames,true);
+    this->normalize((double*)this->AllFrames,(long) this->NumberOfFrames*this->frameHeight*this->frameWidth*3,(double)1.0/255.0);
 }
 
 void processor::rgbBoarder(double* src, long len)
@@ -469,7 +429,7 @@ int processor::AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, i
     this->normalize(fullFrames,LengthAll,255.0);
     //this->normalize(pulseFrames,LengthAll, 255.0);
         if(frame_number<5){this->debugflag=1;}
-    this->rgb2yiq(fullFrames,FrWidth, FrHeight, 1);
+    this->rgb2yiq(fullFrames,FrWidth, FrHeight, 1,false);
         this->debugflag=0;
     //this->rgb2yiq(pulseFrames,FrWidth, FrHeight, 1);
 //fix here:
@@ -546,14 +506,29 @@ void processor::NearInterpolation(double* src, double* dst, int oldwidth, int ol
     //_height = newHeight;
 }
 
-vector<double>& processor::receive_pixel_values(int row, int col) const
+vector<double> processor::receive_pixel_values(int row, int col) const
 {
     vector<double> res(this->NumberOfFrames);
+
+    int width = this->frameWidth;
+    int height = this->frameHeight;
+
     for(int k = 0; k < (int)res.size(); k++)
     {
-        res[k]=this->AllFrames[this->NumberOfFrames*k+this->frameWidth*row+this->frameHeight*col];  //TODO: add channel
+        res[k]=this->AllFrames[channels*(width*height*k+width*row+col)];  //TODO: add channel
     }
-    return res&;
+
+    //cout << res.size() << endl;
+
+    return res;
 }
 
 
+double processor::at(int k, int row, int col) const
+{
+    int width = this->frameWidth;
+    int height = this->frameHeight;
+    int frame_count = this->NumberOfFrames;
+
+    return this->AllFrames[channels*(frame_count*width*height*k+width*row+col)];
+}

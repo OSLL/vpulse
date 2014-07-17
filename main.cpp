@@ -7,6 +7,21 @@
 using namespace cv;
 using namespace std;
 
+#include<utility>
+#include<vector>
+#include<numeric>
+#include<algorithm>
+
+using complex_number = complex<double>;
+using comlex_array = vector<complex<double>>;
+using harmonic_stat = pair<double,double>;
+
+bool comp(harmonic_stat a, harmonic_stat b)
+{
+    return (a.second<b.second);
+}
+
+
 void initializeInterpolation(double* src, double* dst, int ow, int nw, int oh, int nh, int nofFr)
 {
     src=(double*)malloc(sizeof(double)*ow*oh*3*nofFr);
@@ -71,6 +86,46 @@ void printarray(double* src, int w, int h, int noffr)
 }
 */
 
+
+
+harmonic_stat calc_amplitude_and_period(vector<double>& values)
+{
+    //cout << values.size() << endl;
+    comlex_array out_fft(values.size());
+
+    fftw_plan plan = fftw_plan_dft_r2c_1d((int)values.size(), values.data(), reinterpret_cast<fftw_complex*>(out_fft.data()),FFTW_MEASURE);
+    fftw_execute(plan);
+
+    complex_number max;
+    for(const auto& c : out_fft)
+    {
+        if (norm(c)>norm(max))
+            max = c;
+    }
+
+    return make_pair(norm(max)/out_fft.size(),arg(max));
+}
+
+double calc_average_significant_pulse(vector<harmonic_stat> values, int k)
+{
+    assert(k<values.size()); //TODO: add checking
+
+    std::sort(values.begin(),values.end(),comp);
+    k--;
+    int min_diff_pos = 0;
+    for(int i = 0; i < (int)(values.size()- k); i++)
+    {
+        if (values[i + k].second - values[i].second < values[min_diff_pos + k].second - values[min_diff_pos].second)
+            min_diff_pos = i;
+    }
+
+    double acc = 0;
+    for(auto it = values.cbegin(); it != (values.cbegin() + k); it++)
+        acc += it->second;
+    return acc/k;
+}
+
+
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
@@ -81,9 +136,9 @@ int main(int argc, char *argv[])
     if (Curr_video->ReadFrames(filename_in.c_str(),4)<0)
     {
         cout << "Failed to read file" << endl;
-        return 0;
+        return -1;
     }
-    Curr_video->PrintFrames();
+    //Curr_video->PrintFrames();
     int sRate=30; //TODO
     const string new_dir_name {"PulseSignal"};
     const string new_dir_name_fr_txt {"FramesInputTxt"};
@@ -107,29 +162,12 @@ int main(int argc, char *argv[])
     string f_dir_name;
     f_dir_name.resize(new_dir_name.length()+f_name.length()+1);
 
-    //f_dir_name[0]='\0';
-    //strcat(f_dir_name,new_dir_name);
-    //char* slesh = new char('92');
-    //strcat(f_dir_name,slesh);
-    //f_dir_name[strlen(new_dir_name)]=(char)47;g
-    //strcat(f_dir_name,f_name);
-    //sprintf(f_dir_name,new_dir_name);
-    //printf(f_dir_name);
-    //printf("\n");
-    processor* Pr1= new processor(Curr_video->getNumberOfFrames(),Curr_video->getFrameHeight(),Curr_video->getFrameWidth(), sRate, Curr_video->getBluredFrames());
-    //const char* f_name_AllFramesR = "AllFramesR.log";
-    //const char* f_name_AllFramesG = "AllFramesG.log";
-    //const char* f_name_AllFramesB = "AllFramesB.log";
-    //Pr1->PrintData(&Pr1->getAllFrames()[0], Pr1->getFrH()*Pr1->getFrW()*Pr1->getNFr(), "PulseSignal/tmp1.log");
-    //Pr1->PrintData(&Pr1->getAllFrames()[Pr1->getFrH()*Pr1->getFrW()*Pr1->getNFr()], Pr1->getFrH()*Pr1->getFrW()*Pr1->getNFr(), f_name_AllFramesG);
-    //Pr1->PrintData(&Pr1->getAllFrames()[Pr1->getFrH()*Pr1->getFrW()*Pr1->getNFr()*2], Pr1->getFrH()*Pr1->getFrW()*Pr1->getNFr(), f_name_AllFramesB);
-    //const char* f_name_AllFramesY = "AllFramesY.log";
-    //const char* f_name_AllFramesI = "AllFramesI.log";
-    //const char* f_name_AllFramesQ = "AllFramesQ.log";
-    double fr1 {50.0/60.0};
-    double fr2 {78.0/60.0};
-    //printf("flow= %f, fHight= %f \n", fLow, fHight);
-    double ampFactor = 70.0;
+    processor* Pr1 = new processor(Curr_video->getNumberOfFrames(),Curr_video->getFrameHeight(),Curr_video->getFrameWidth(), sRate, Curr_video->getBluredFrames());
+
+    const double fr1 {50.0/60.0};
+    const double fr2 {78.0/60.0};
+    const double ampFactor {70.0};
+
     Pr1->work(fr1,fr2,ampFactor);
 //FIX //Pr1->VectorToFrames(Pr1->getAllFrames(),Curr_video->getBluredFrames(), Pr1->getFrW(),Pr1->getFrH(),Pr1->getNFr());
 //FIX   //Curr_video->PyrUpBlured(4);
@@ -140,31 +178,29 @@ int main(int argc, char *argv[])
     //Curr_video->AddPulseToFrames();
     Curr_video->PrintFrames();
 
-    double* frames {Pr1->getAllFrames()};
-    int framecount {Pr1->getNFr()};
-
-    vector<double> values(frames,frames+framecount*sizeof(double));
-    delete(frames);
+    //vector<double> values(frames,frames+framecount*sizeof(double));
 
 
+    vector<double> values_array[3][3];
+    vector<harmonic_stat> harmonic_stats;
 
 
-    //Pr1->PrintData(&Pr1->getAllFrames()[0], Pr1->getFrH()*Pr1->getFrW()*Pr1->getNFr(), f_name_AllFramesY);
-    //Pr1->PrintData(&Pr1->getAllFrames()[Pr1->getFrH()*Pr1->getFrW()*Pr1->getNFr()], Pr1->getFrH()*Pr1->getFrW()*Pr1->getNFr(), f_name_AllFramesI);
-    //Pr1->PrintData(&Pr1->getAllFrames()[Pr1->getFrH()*Pr1->getFrW()*Pr1->getNFr()*2], Pr1->getFrH()*Pr1->getFrW()*Pr1->getNFr(), f_name_AllFramesQ);
-    printf("success!\n");
-    printf("Height = %d\n",Curr_video->getFrameHeight());
-    printf("Width = %d\n",Curr_video->getFrameWidth());
+
+    for(int i = 0; i < 3; i++)
+        for(int j = 0; j < 3; j++)
+        {
+            values_array[i][j]=Pr1->receive_pixel_values(i*Pr1->getFrH()/4,j*Pr1->getFrW()/4);
+            //cout << values_array[i][j].size() << endl;
+            harmonic_stats.push_back(calc_amplitude_and_period(values_array[i][j]));
+        }
+
+    const int avg_parameter = 3;
+    double pulse = calc_average_significant_pulse(harmonic_stats,avg_parameter);
+    cout << pulse << endl;
+
     delete(Pr1);
-    delete(summSignal);
     delete(Curr_video);
-    //QPushButton B1("Stop",&w);
-    //QObject::connect(&B1,SIGNAL(clicked()),&a,SLOT(quit()));
-    //B1.show();
-    //printf("end\n");
-    //return a.exec();
-
-
+    delete(summSignal);
 
     return 0;
 }
