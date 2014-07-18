@@ -15,7 +15,7 @@ private:
     int frameWidth;
 public:
 
-    int ReadFrames(const char* videofilename_in, int pyramid_level);
+    int ReadFrames(const string& videofilename_in, int pyramid_level);
     int PyrUpBlured(int pyramid_level);
     int PrintFrames(void);
     int AddPulseToFrames(void);

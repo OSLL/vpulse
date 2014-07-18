@@ -154,8 +154,8 @@ processor::processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_i
     samplingRate(sRate_in),
     debugflag(0)
 {
-    long LengthAll=this->NumberOfFrames*this->frameHeight*this->frameWidth*3;
-    this->AllFrames=(double*)malloc(LengthAll*sizeof(double));
+    long LengthAll=NumberOfFrames*frameHeight*frameWidth*channels;
+    AllFrames = new double[LengthAll];
     this->FramesToVector(Frames,this->AllFrames, this->frameWidth, this->frameHeight, this->NumberOfFrames);
 }
 
@@ -164,12 +164,11 @@ processor::~processor()
     free(this->AllFrames);
 }
 
-void processor::FramesToVector(Mat** src, double* dst, int frWidth, int frHeight, int NofFrames)
+/*void processor::FramesToVector(Mat** src, double* dst, int frWidth, int frHeight, int NofFrames)
 {
-
-    long rowD= NofFrames*frHeight;
-    long colD=rowD*frWidth;
-    int invCh =0;                       //FIXME - FIxed bug with R-B channel rotation
+    long rowD = NofFrames * frHeight;
+    long colD = rowD * frWidth;
+    int invCh = 0;
     for(int ch = 2; ch >= 0; ch--)
     //for(int ch = 0; ch < 3; ch++)   //FIXME
     {
@@ -185,9 +184,35 @@ void processor::FramesToVector(Mat** src, double* dst, int frWidth, int frHeight
         }
         invCh++;
     }
+}*/
+
+
+void processor::FramesToVector(Mat** src, double* dst, int frWidth, int frHeight, int NofFrames)
+{
+    for(int k = 0; k < NofFrames; k++)
+        for(int row = 0; row < frHeight; row++)
+            for(int col = 0; col < frWidth; col++)
+            {
+                dst[calc_pixel_coor(k,row,col,0)] = src[k]->at<Vec3b>(row,col)[0]; //temporary solution. Works slowly
+                dst[calc_pixel_coor(k,row,col,1)] = src[k]->at<Vec3b>(row,col)[1];
+                dst[calc_pixel_coor(k,row,col,2)] = src[k]->at<Vec3b>(row,col)[2];
+            }
 }
 
 void processor::VectorToFrames(double* src, Mat** dst, int frWidth, int frHeight, int NofFrames)
+{
+    for(int k = 0; k < NofFrames; k++)
+        for(int row = 0; row < frHeight; row++)
+            for(int col = 0; col < frWidth; col++)
+            {
+                dst[k]->at<Vec3b>(row,col)[0] = src[calc_pixel_coor(k,row,col,0)];
+                dst[k]->at<Vec3b>(row,col)[1] = src[calc_pixel_coor(k,row,col,1)];
+                dst[k]->at<Vec3b>(row,col)[2] = src[calc_pixel_coor(k,row,col,2)];
+            }
+}
+
+
+/*void processor::VectorToFrames(double* src, Mat** dst, int frWidth, int frHeight, int NofFrames)
 {
     long rowD= (long)NofFrames*(long)frHeight;
     long colD=(long)rowD*(long)frWidth;
@@ -207,7 +232,7 @@ void processor::VectorToFrames(double* src, Mat** dst, int frWidth, int frHeight
         }
         invCh++;
     }
-}
+}*/
 
 void processor::rgb2yiq(double* srcDst, int frWidth, int frHeight, int NofFrames, bool rev)
 {
@@ -220,48 +245,29 @@ void processor::rgb2yiq(double* srcDst, int frWidth, int frHeight, int NofFrames
        srcDst[ch+chD] = tmp[0]*Coefs[3] + tmp[1]*Coefs[4] + tmp[2]*Coefs[5];
        srcDst[ch+chD*2] = tmp[0]*Coefs[6] + tmp[1]*Coefs[7] + tmp[2]*Coefs[8];
     }
-
 }
 
-void processor::normalize(double* src, long len, double factor)
+void normalize(vector<double>& src, double factor)
 {
-    for(long i=0; i<len; i++)
-    {
-        src[i]/=factor;
-    }
+    for(auto& e : src)
+        e/=factor;
 }
 
-int* processor::createFreqMask(double fLow, double fHight)
+vector<int> processor::createFreqMask(double fLow, double fHigh)
 {
-    int* indexes=(int*)malloc((this->NumberOfFrames+1)*sizeof(int));
-    int j=0;
-    double* mask=(double*)malloc(this->NumberOfFrames*sizeof(double));
-    for(int i=0; i<this->NumberOfFrames;i++)
+    int frames_count = NumberOfFrames;
+
+    vector<int> indices;
+
+    for(int i = 0; i < frames_count; i++)
     {
-        mask[i]=(double)i/(double)NumberOfFrames*(double)samplingRate;
-        //printf("mask[%d]=%f\n",i,mask[i]);
-        if((mask[i]>fLow)&&(mask[i]<fHight))
-        {
-            //printf("mask[%d]=%f \t > \t fLow= %f && \t < \t fHight= %f \n",i,mask[i],fLow, fHight);
-            indexes[j]=i;
-            j++;
-        }
+        double mask = (double)i/NumberOfFrames*samplingRate;
+        if (mask > fLow && mask < fHigh)
+            indices.push_back(i);
     }
-    indexes[j]=-1; //indicates end of list of frequences to pass
-    for(int k=j+1; k<NumberOfFrames+1; k++)
-    {
-        indexes[k]=0;
-    }
-    return(indexes);
+    return indices;
 }
 
-void processor::copyVector(double* src, double* dst, long len)
-{
-    for(long i=0; i< len; i++)
-    {
-        dst[i]=src[i];
-    }
-}
 void processor::copyFFTW_cpx(fftw_complex* src, fftw_complex* dst, long len)
 {
     for(long i=0; i< len; i++)
@@ -271,25 +277,16 @@ void processor::copyFFTW_cpx(fftw_complex* src, fftw_complex* dst, long len)
     }
 }
 
-void processor::applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long len)
+void processor::applyMask(const complex_vector& src, complex_vector& dst, const vector<int>& mask)
 {
-    int k=0;
-    for(int i=0; i<len; i++)
+    dst.assign(dst.size(),complex_number(0,0)); //set all elements to 0
+
+    for(auto i : mask) //copy src data in elements with indices from mask
     {
-        if(i==mask[k])
-        {
-            dst[i][0]=src[i][0];
-            dst[i][1]=src[i][1];
-            k++;
-        }
-        else
-        {
-            dst[i][0]=0.0;
-            dst[i][1]=0.0;
-        }
+        //cout << i << " ";
+        dst[i] = src[i];
     }
-    //dst[9][0]=src[9][0];
-    //dst[9][1]=src[9][1];
+    //cout << endl;
 }
 
 void processor::sumVector(double* src1, double *src2, double* dst, long len)
@@ -300,72 +297,45 @@ void processor::sumVector(double* src1, double *src2, double* dst, long len)
     }
 }
 
-
-
 void processor::work(double fLow, double fHight, double ampFactor)
 {
-    this->normalize(this->AllFrames,(long) this->NumberOfFrames*this->frameHeight*this->frameWidth*3,255.0);
+    std::transform(AllFrames,AllFrames+NumberOfFrames*frameHeight*frameWidth*channels,AllFrames,[](double a){return a/255;}); //normalizing array using range transformation and lambda function
+
     this->rgb2yiq(this->AllFrames,this->frameWidth,this->frameHeight, this->NumberOfFrames,false);
-    printf("flow= %f, fHight= %f \n", fLow, fHight);
-    //char* GDownStack_file = "GDownStack.log";
-    //PrintDataFrame(this->AllFrames, this->NumberOfFrames, GDownStack_file, this->frameHeight, this->frameWidth);
-    int* mask=createFreqMask(fLow,fHight);
 
-    //const char* filename_mask = "fr_mask.log";
-    //PrintDataInt(mask,this->NumberOfFrames+1,filename_mask);
+    vector<int> mask=createFreqMask(fLow,fHight);
 
-    //fft_header
-    fftw_complex* out_fft;
-    double* in_fft;
-    in_fft = (double*)malloc(sizeof(double)*this->NumberOfFrames);
-    out_fft = (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*this->NumberOfFrames);
-    fftw_plan p = fftw_plan_dft_r2c_1d(this->NumberOfFrames,in_fft,out_fft,FFTW_MEASURE);
+    complex_vector out_fft(NumberOfFrames);
+    vector<double> in_fft(NumberOfFrames);
+
+    fftw_plan p = fftw_plan_dft_r2c_1d((int)in_fft.size(), in_fft.data(), reinterpret_cast<fftw_complex*>(out_fft.data()), FFTW_MEASURE);
 
     //ifft_header
-    fftw_complex* in_ifft= (fftw_complex*)fftw_malloc(sizeof(fftw_complex)*(this->NumberOfFrames));
-    double* out_ifft = (double*)malloc(sizeof(double)*this->NumberOfFrames);
-    fftw_plan p_ifft = fftw_plan_dft_c2r_1d(this->NumberOfFrames,in_ifft,out_ifft,FFTW_MEASURE);
 
+    complex_vector in_ifft(NumberOfFrames);
+    vector<double> out_ifft(NumberOfFrames);
 
-    for(int i=0; i<this->frameHeight*this->frameWidth*3; i++)
-    {
-        //fft:compute
-        this->copyVector((double*)&this->AllFrames[i*this->NumberOfFrames],in_fft,this->NumberOfFrames);
-        fftw_execute(p);
+    fftw_plan p_ifft = fftw_plan_dft_c2r_1d((int)in_ifft.size(),reinterpret_cast<fftw_complex*>(in_ifft.data()), out_ifft.data(), FFTW_MEASURE);
 
-        //char* f_name_fftw_test = "fftw_test.log";
-        //char* f_name_fft_in = "fft_in1.log";
-        //PrintDataDb(in_fft,this->NumberOfFrames,f_name_fft_in);
-        //PrintDataCmx(out_fft,this->NumberOfFrames,f_name_fftw_test);
+    for(int row = 0; row < frameHeight; row++)
+        for(int col = 0; col < frameWidth; col++)
+            for(int channel = 0; channel < channels; channel++)
+            {
+                in_fft = receive_pixel_values(row,col,channel);
+                fftw_execute(p);
 
-        //ifft:compute
-        this->applyMask(out_fft,in_ifft,mask,this->NumberOfFrames/2+1);
-        fftw_execute(p_ifft);
-        this->normalize(out_ifft, (long)this->NumberOfFrames,(double)this->NumberOfFrames/ampFactor);
-        //this->sumVector(&this->AllFrames[i*this->NumberOfFrames],out_ifft,&this->AllFrames[i*this->NumberOfFrames],(long)this->NumberOfFrames);
+                this->applyMask(out_fft,in_ifft,mask);
+                fftw_execute(p_ifft);
 
-        this->copyVector(out_ifft, &this->AllFrames[i*this->NumberOfFrames],this->NumberOfFrames);
-        //char* f_name_fft_in2 = "fft_in2.log";
-        //PrintDataDb(out_ifft,this->NumberOfFrames,f_name_fft_in2);
+                normalize(out_ifft,(double)NumberOfFrames/ampFactor);
+                insert_pixel_values(out_ifft,row,col,channel);
 
-    }
-    //===========
+            }
     fftw_destroy_plan(p);
     fftw_destroy_plan(p_ifft);
-    fftw_free(out_fft);
-    fftw_free(in_ifft);
-    free(in_fft);
-    free(out_ifft);
 
-    //print fft_results
-    /*const char frame_filename[35] = "PulseSignal/fft_frame.log";
-    for(int i = 0; i< this->NumberOfFrames; i++)
-    {
-      PrintDataFrame(this->AllFrames,this->NumberOfFrames,frame_filename,this->frameHeight,this->frameWidth);
-    }*/
-
-    this->rgb2yiq(this->AllFrames,this->frameWidth,this->frameHeight, this->NumberOfFrames,true);
-    this->normalize((double*)this->AllFrames,(long) this->NumberOfFrames*this->frameHeight*this->frameWidth*3,(double)1.0/255.0);
+    rgb2yiq(AllFrames,frameWidth,frameHeight,NumberOfFrames,true);
+    std::transform(AllFrames,AllFrames+NumberOfFrames*frameHeight*frameWidth*channels,AllFrames,[](double a){return a*255;}); //normalizing array using range transformation and lambda function
 }
 
 void processor::rgbBoarder(double* src, long len)
@@ -410,49 +380,38 @@ void processor::YIQ2RGBnormalizeColorChannels(double* srcDst, int frWidth, int f
     }
 }
 
-int processor::AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, int NofFrames)
+int processor::AddPulseToFrames(Mat** frames, int NofFrames)
 {
-    int FrHeight = frames[0]->rows;
     int FrWidth = frames[0]->cols;
-    long LengthAll = /*NofFrames**/FrWidth*FrHeight*3;
-    double* fullFrames = (double*)malloc(LengthAll*sizeof(double));
-    double* pulseFrames = (double*)malloc(LengthAll*sizeof(double));
-    char* Fr_from_arr = "FramesInputTxt/frame_arrYIQSumm0.log";
-    char* Fr_from_arr1 = "FramesInputTxt/frame_arrYIQSumm1.log";
-    char* Fr_from_arr2 = "FramesInputTxt/frame_arrYIQSumm2.log";
-    char* Fr_from_arr291 = "FramesInputTxt/frame_arrYIQSumm291.log";
-    for(int frame_number =0; frame_number <NofFrames;frame_number++)
-    {
+    int FrHeight = frames[0]->rows;
+    int LengthAll = frameHeight*frameWidth*channels;
+    vector<double> fullFrames(LengthAll);
+    vector<double> pulseFrames(LengthAll);
 
-    this->FramesToVector(&frames[frame_number],fullFrames, FrWidth, FrHeight, 1);
+    for(int frame_number = 0; frame_number < NofFrames; frame_number++)
+    {
+        this->FramesToVector(&frames[frame_number], fullFrames.data(), FrWidth, FrHeight, 1);
     //this->FramesToVector(&pulse[frame_number],pulseFrames, FrWidth, FrHeight, 1);
-    this->normalize(fullFrames,LengthAll,255.0);
+        normalize(fullFrames,255.0);
     //this->normalize(pulseFrames,LengthAll, 255.0);
-        if(frame_number<5){this->debugflag=1;}
-    this->rgb2yiq(fullFrames,FrWidth, FrHeight, 1,false);
-        this->debugflag=0;
+        rgb2yiq(fullFrames.data(),FrWidth, FrHeight, 1,false);
     //this->rgb2yiq(pulseFrames,FrWidth, FrHeight, 1);
 //fix here:
- NearInterpolation(AllFrames,pulseFrames,frameWidth,frameHeight,FrWidth,FrHeight,NofFrames,frame_number);
+        NearInterpolation(AllFrames,pulseFrames.data(),frameWidth,frameHeight,FrWidth,FrHeight,NofFrames,frame_number);
 //================
     //long tmp = LengthAll/3;
-    this->sumVector(fullFrames,pulseFrames,fullFrames,LengthAll);     //FIXME tmp above
+        this->sumVector(fullFrames.data(),pulseFrames.data(),fullFrames.data(),LengthAll);     //FIXME tmp above
 
     //this->yiq2rgb(fullFrames,FrWidth, FrHeight, 1);
-    this->YIQ2RGBnormalizeColorChannels(fullFrames,FrWidth, FrHeight, 1);
-        if(frame_number==0){print_frame_N(0,fullFrames, 1, Fr_from_arr, FrHeight, FrWidth);}
-        if(frame_number==1){print_frame_N(0,fullFrames, 1, Fr_from_arr1, FrHeight, FrWidth);}
-        if(frame_number==2){print_frame_N(0,fullFrames, 1, Fr_from_arr2, FrHeight, FrWidth);}
-        if(frame_number==290){print_frame_N(0,fullFrames, 1, Fr_from_arr291, FrHeight, FrWidth);}
-    this->rgbBoarder(fullFrames,LengthAll);
-    this->normalize(fullFrames,LengthAll,1.0/255.0);
-    this->VectorToFrames(fullFrames,&frames[frame_number],FrWidth,FrHeight,1);
+        this->YIQ2RGBnormalizeColorChannels(fullFrames.data(),FrWidth, FrHeight, 1);
+
+        this->rgbBoarder(fullFrames.data(),LengthAll);
+        normalize(fullFrames,1.0/255.0);
+        this->VectorToFrames(fullFrames.data(),&frames[frame_number],FrWidth,FrHeight,1);
     }
-    free(fullFrames);
-    free(pulseFrames);
+
     return 0;
 }
-
 
 double* processor::getAllFrames(void)
 {
@@ -491,8 +450,7 @@ void processor::NearInterpolation(double* src, double* dst, int oldwidth, int ol
         {
             int pixel = (cx * (newheight/**nofFr*/)) + (cy/**nofFr*/)/*+frameInd*/;
             long nearestMatch =  (((long)(cx / scalewidth) * (oldheight*nofFr)) + ((long)(cy / scaleheight)*nofFr) )+frameInd;
-            //printf("pixel = %d\n",pixel);
-            //printf("near = %d\n",nearestMatch);
+
             dst[pixel] =  src[nearestMatch];
             dst[pixel + newheight*newwidth/**nofFr*/] =  src[nearestMatch + oldheight*oldwidth*nofFr];
             dst[pixel + newheight*newwidth*2/**nofFr*/] =  src[nearestMatch + oldheight*oldwidth*nofFr*2];
@@ -506,29 +464,35 @@ void processor::NearInterpolation(double* src, double* dst, int oldwidth, int ol
     //_height = newHeight;
 }
 
-vector<double> processor::receive_pixel_values(int row, int col) const
+vector<double> processor::receive_pixel_values(int row, int col, int channel) const
 {
-    vector<double> res(this->NumberOfFrames);
-
-    int width = this->frameWidth;
-    int height = this->frameHeight;
+    vector<double> res(NumberOfFrames);
 
     for(int k = 0; k < (int)res.size(); k++)
-    {
-        res[k]=this->AllFrames[channels*(width*height*k+width*row+col)];  //TODO: add channel
-    }
-
-    //cout << res.size() << endl;
+        res[k]=AllFrames[calc_pixel_coor(k,row,col,channel)];
 
     return res;
 }
 
+void processor::insert_pixel_values(const vector<double>& values, int row, int col, int channel)
+{
+    //check that values.size == NofFrames
+    for(int k = 0; k < (int)values.size(); k++)
+        AllFrames[calc_pixel_coor(k,row,col,channel)]=values[k];
 
-double processor::at(int k, int row, int col) const
+}
+
+
+int processor::calc_pixel_coor(int k, int row, int col, int channel) const
 {
     int width = this->frameWidth;
     int height = this->frameHeight;
-    int frame_count = this->NumberOfFrames;
 
-    return this->AllFrames[channels*(frame_count*width*height*k+width*row+col)];
+    return channels*(width*height*k+width*row+col)+channel;
+}
+
+
+double processor::at(int k, int row, int col, int channel) const
+{
+    return this->AllFrames[calc_pixel_coor(k,row,col,channel)];
 }
