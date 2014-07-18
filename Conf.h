@@ -33,4 +33,6 @@ extern "C"
 #include <QDir>
 
 const int FRAMES_MAX =1000;
+using complex_number = std::complex<double>;
+using complex_vector = std::vector<std::complex<double>>;
 #endif // CONF_H
