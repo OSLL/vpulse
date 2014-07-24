@@ -39,54 +39,6 @@ void printarray(double* src, int w, int h, int noffr)
         printf("[%d]%lf\n",i,src[i]);
 }
 
-
-/*int main(int argc, char *argv[])
-{
-    QApplication a(argc, argv);
-    w.show();
-    double* srcIm;
-    double* dstIm;
-    int ow=2;
-    int oh=2;
-    int nw=50;
-    int nh=50;
-    int nofFr=2;
-    int frInd=0;
-    //initializeInterpolation(srcIm,dstIm,ow,nw,oh,nh,nofFr);
-    srcIm=(double*)malloc(sizeof(double)*ow*oh*3*nofFr);
-    dstIm=(double*)malloc(sizeof(double)*nw*nh*3*nofFr);
-    for(int i=0; i<ow*oh*3*nofFr;i++)
-    {
-        srcIm[i] = (double)i;
-        i++;
-        srcIm[i] = 10.0;
-    }
-    for(int i=0; i<ow*oh*3*nofFr;i++)
-    {
-        dstIm[i] = -1.0;
-    }
-    char* filename_in = "face.mp4";
-    VideoReader* Curr_video=new VideoReader();
-    Curr_video->ReadFrames(filename_in,4);
-    int sRate=30;
-
-    processor* Pr1= new processor(Curr_video->getNumberOfFrames(),Curr_video->getFrameHeight(),Curr_video->getFrameWidth(), sRate, Curr_video->getBluredFrames());
-    //printarray(srcIm,ow,oh,nofFr);
-    Pr1->NearInterpolation(srcIm,dstIm,ow,oh,nw,nh,nofFr,frInd);
-    frInd++;
-    Pr1->NearInterpolation(srcIm,dstIm,ow,oh,nw,nh,nofFr,frInd);
-    printarray(dstIm,nw,nh,nofFr);
-
-    QPushButton B1("Stop",&w);
-    QObject::connect(&B1,SIGNAL(clicked()),&a,SLOT(quit()));
-    B1.show();
-    //printf("end\n");
-    return a.exec();
-}
-*/
-
-
-
 harmonic_stat calc_amplitude_and_period(vector<double>& values)
 {
     //cout << values.size() << endl;
@@ -107,8 +59,6 @@ harmonic_stat calc_amplitude_and_period(vector<double>& values)
 
 double calc_average_significant_pulse(vector<harmonic_stat> values, int k)
 {
-    assert(k<values.size()); //TODO: add checking
-
     std::sort(values.begin(),values.end(),comp);
     k--;
     int min_diff_pos = 0;
@@ -145,16 +95,18 @@ int main(int argc, char *argv[])
     const double fr2 {78.0/60.0};
     const double ampFactor {70.0};
 
+
     Pr1->work(fr1,fr2,ampFactor);
+    //Pr1->PrintData(Pr1->getAllFrames(),100,"new.log");
     Pr1->AddPulseToFrames(Curr_video->getFrames(),Curr_video->getNumberOfFrames());
-    Curr_video->PrintFrames();
+    //Curr_video->PrintFrames();
 
     /*vector<double> values = Pr1->receive_pixel_values(Pr1->getFrH()/2,Pr1->getFrW()/2,0);
 
     for(auto val : values)
         cout << val << " ";*/
 
-    /*vector<double> values_array[3][3];
+    vector<double> values_array[3][3];
     vector<harmonic_stat> harmonic_stats;
 
     for(int i = 0; i < 3; i++)
@@ -164,10 +116,15 @@ int main(int argc, char *argv[])
             harmonic_stats.push_back(calc_amplitude_and_period(values_array[i][j]));
         }
 
+    cout << harmonic_stats.size() << endl;
+    for(auto x : harmonic_stats)
+        cout << x.second << " ";
+    cout << endl;
+
     const int avg_parameter = 3;
     double pulse = calc_average_significant_pulse(harmonic_stats,avg_parameter);
 
-    cout << pulse << endl;*/
+    cout << pulse << endl;
 
     delete Pr1;
     delete Curr_video;

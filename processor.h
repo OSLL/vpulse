@@ -46,7 +46,7 @@ public:
     int getNFr(void) const;
     int AddPulseToFrames(Mat** frames, int NofFrames);
     double at(int k, int row, int col, int channel) const;
-    void NearInterpolation(double* src, double* dst, int oldwidth, int oldheight, int newwidth, int newheight, int nofFr, int frameInd);
+    void NearInterpolation(double* src, double* dst, int oldwidth, int oldheight, int newwidth, int newheight, int frameInd);
     //tmp==================
     void PrintData(double* src, long len, const char* filename);
     //=====================
