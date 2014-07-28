@@ -11,6 +11,8 @@ QT += core
 
 QT -= gui
 
+DEFINES += QT_NODLL
+
 SOURCES += main.cpp\
     videoreader.cpp \
     processor.cpp
@@ -25,19 +27,12 @@ LIBS += -LC:/opencv/build/x64/vc12/lib/ -lopencv_core248d -lopencv_highgui248d -
 INCLUDEPATH += C:\opencv\build\include \
     $$PWD/fftw
 
-#QMAKE_CXXFLAGS="-stdlib=libstdc++"
-
-#CONFIG += c++11
 LIBS += -L$$PWD/fftw/ -llibfftw3-3
 
 DEPENDPATH += $$PWD/fftw
 PRE_TARGETDEPS += $$PWD/fftw/libfftw3-3.lib
 
-
-
-#PRE_TARGETDEPS += $$PWD/ffmpeg/lib/avcodec.lib
-
-win32: LIBS += -L$$PWD/ffmpeg/lib/ -lavcodec-55 -lavformat-55 -lswscale-2 -lavutil-52
-
+LIBS += -L$$PWD/ffmpeg/lib/ -lavcodec-55 -lavformat-55 -lswscale-2 -lavutil-52
 INCLUDEPATH += $$PWD/ffmpeg/include
 DEPENDPATH += $$PWD/ffmpeg/include
+

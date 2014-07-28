@@ -15,70 +15,106 @@ using namespace std;
 
 using harmonic_stat = pair<double,double>;
 
-bool comp(harmonic_stat a, harmonic_stat b)
+harmonic_stat calc_amplitude_and_period(vector<double> values)
 {
-    return (a.second<b.second);
-}
-
-
-void initializeInterpolation(double* src, double* dst, int ow, int nw, int oh, int nh, int nofFr)
-{
-    src=(double*)malloc(sizeof(double)*ow*oh*3*nofFr);
-    printf("oldsize= %d",ow*oh*3*nofFr);
-    dst=(double*)malloc(sizeof(double)*nw*nh*3*nofFr);
-    printf("newsize= %d",nw*nh*3*nofFr);
-    for(int i=0; i<ow*oh*3*nofFr;i++)
-    {
-        src[i] = (double)i;
-    }
-}
-
-void printarray(double* src, int w, int h, int noffr)
-{
-    for(int i=0; i<w*h*3*noffr; i++)
-        printf("[%d]%lf\n",i,src[i]);
-}
-
-harmonic_stat calc_amplitude_and_period(vector<double>& values)
-{
-    //cout << values.size() << endl;
     complex_vector out_fft(values.size());
 
-    fftw_plan plan = fftw_plan_dft_r2c_1d((int)values.size(), values.data(), reinterpret_cast<fftw_complex*>(out_fft.data()), FFTW_MEASURE);
+    fftw_plan plan = fftw_plan_dft_r2c_1d((int)values.size(), values.data(), reinterpret_cast<fftw_complex*>(out_fft.data()), FFTW_ESTIMATE);
     fftw_execute(plan);
 
-    complex_number max;
-    for(const auto& c : out_fft)
+    int max = 1;
+    for(int i = 1; i < out_fft.size(); i++)
     {
-        if (norm(c)>norm(max))
-            max = c;
+        if (norm(out_fft[i])>norm(out_fft[max]))
+            max = i;
     }
 
-    return make_pair(norm(max)/out_fft.size(),arg(max));
+    return make_pair((double)abs(out_fft[max])/out_fft.size(),(double)out_fft.size()/max);
 }
 
-double calc_average_significant_pulse(vector<harmonic_stat> values, int k)
+double calc_average_significant_period(vector<double> periods, int k)
 {
-    std::sort(values.begin(),values.end(),comp);
+    std::sort(periods.begin(),periods.end());
     k--;
     int min_diff_pos = 0;
-    for(int i = 0; i < (int)(values.size()- k); i++)
+    for(int i = 0; i < (int)(periods.size()- k); i++)
     {
-        if (values[i + k].second - values[i].second < values[min_diff_pos + k].second - values[min_diff_pos].second)
+        if (periods[i + k] - periods[i] < periods[min_diff_pos + k] - periods[min_diff_pos])
             min_diff_pos = i;
     }
-
-    double acc{0};
-    for(auto it = values.cbegin(); it != (values.cbegin() + k); it++)
-        acc += it->second;
+    k++;
+    double acc = std::accumulate(periods.begin()+min_diff_pos,periods.begin()+min_diff_pos+k,0);
     return acc/k;
+}
+
+vector<double> gen_sin_vector(int length, double ampl, double period)
+{
+    auto f = [ampl, period](int t){return ampl*sin((double)t*2*M_PI/period)+ampl;};
+    vector<double> res(length);
+    for(int i = 0; i < length; i++)
+        res[i] = f(i);
+    return res;
+}
+
+
+Mat** gen_test_image(int length, int width, int height, double ampl, double period)
+{
+    Mat** res = new Mat*[length];
+
+    for(int i = 0; i < length; i++)
+        res[i] = new Mat(height,width,CV_8UC3);
+
+    for(int i = 0; i < height; i++)
+        for(int j = 0; j < width; j++)
+        {
+            vector<double> values {gen_sin_vector(length,ampl,period)};
+            for(int k = 0; k < length; k++)
+                res[k]->at<Vec3b>(i,j) = Vec3b(values[k],values[k],values[k]);
+        }
+
+    return res;
+}
+
+
+vector<double> receive_pixel_values(Mat** src, int NumberOfFrames, int row, int col, int channel)
+{
+    vector<double> res(NumberOfFrames);
+
+    for(int k = 0; k < (int)res.size(); k++)
+        res[k]=src[k]->at<Vec3b>(row,col)[channel];
+
+    return res;
+}
+
+
+vector<double> receive_averaged_pixel_values(Mat** src, int NumberOfFrames, int row, int col, double area_size)
+{
+    int count = 0;
+    vector<double> res(NumberOfFrames);
+    for(int i = row - area_size; i < row + area_size; i++)
+        for(int j = col - area_size; j < col + area_size; j++)
+        {
+            if (((i-row)*(i-row)+(j-col)*(j-col)) <= area_size*area_size)
+            {
+                vector<double> values_array_r{receive_pixel_values(src,NumberOfFrames,row,col,0)};
+                vector<double> values_array_g{receive_pixel_values(src,NumberOfFrames,row,col,1)};
+                vector<double> values_array_b{receive_pixel_values(src,NumberOfFrames,row,col,2)};
+                vector<double> monochrome_values(values_array_b.size());
+                for(int i = 0; i < values_array_b.size(); i++)
+                    monochrome_values[i] = sqrt((values_array_b[i]*values_array_b[i]+values_array_g[i]*values_array_g[i]+values_array_r[i]*values_array_r[i])/3);
+                std::transform(res.begin(), res.end(), monochrome_values.begin(), res.begin(), std::plus<double>());
+                count++;
+            }
+        }
+    for(auto& x : res)
+        x /= count;
+
+    return res;
 }
 
 
 int main(int argc, char *argv[])
 {
-    //QCoreApplication a(argc, argv);
-
     const string filename_in {"face.mp4"};
 
     VideoReader* Curr_video=new VideoReader();
@@ -88,46 +124,68 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    int sRate=30; //TODO
+    const int sRate {30};
     processor* Pr1 = new processor(Curr_video->getNumberOfFrames(),Curr_video->getFrameHeight(),Curr_video->getFrameWidth(), sRate, Curr_video->getBluredFrames());
+
+
+    /*int length = 200;
+    int width = 500;
+    int height = 500;
+    double ampl = 50;
+    double period = 30;
+    Mat** test_image = gen_test_image(length,width,height,ampl,period);*/
+
 
     const double fr1 {50.0/60.0};
     const double fr2 {78.0/60.0};
     const double ampFactor {70.0};
 
-
     Pr1->work(fr1,fr2,ampFactor);
-    //Pr1->PrintData(Pr1->getAllFrames(),100,"new.log");
     Pr1->AddPulseToFrames(Curr_video->getFrames(),Curr_video->getNumberOfFrames());
-    //Curr_video->PrintFrames();
 
-    /*vector<double> values = Pr1->receive_pixel_values(Pr1->getFrH()/2,Pr1->getFrW()/2,0);
-
-    for(auto val : values)
-        cout << val << " ";*/
-
-    vector<double> values_array[3][3];
+//    vector<double> values_array_r,values_array_g,values_array_b;
     vector<harmonic_stat> harmonic_stats;
 
-    for(int i = 0; i < 3; i++)
-        for(int j = 0; j < 3; j++)
+    for(int i = 1; i <= 3; i++)
+        for(int j = 1; j <= 3; j++)
         {
-            values_array[i][j]=Pr1->receive_pixel_values(i*Pr1->getFrH()/4,j*Pr1->getFrW()/4,0);
-            harmonic_stats.push_back(calc_amplitude_and_period(values_array[i][j]));
+            //values_array_r=receive_pixel_values(Curr_video->getFrames(),Curr_video->getNumberOfFrames(),i*Curr_video->getFrameHeight()/4,j*Curr_video->getFrameWidth()/4,0);
+            //values_array_g=receive_pixel_values(Curr_video->getFrames(),Curr_video->getNumberOfFrames(),i*Curr_video->getFrameHeight()/4,j*Curr_video->getFrameWidth()/4,1);
+            //values_array_b=receive_pixel_values(Curr_video->getFrames(),Curr_video->getNumberOfFrames(),i*Curr_video->getFrameHeight()/4,j*Curr_video->getFrameWidth()/4,2);
+            vector<double> values {receive_averaged_pixel_values(Curr_video->getFrames(),Curr_video->getNumberOfFrames(),i*Curr_video->getFrameHeight()/4,j*Curr_video->getFrameWidth()/4,3.0)};
+
+            //values_array_r=receive_pixel_values(test_image,length,i*height/4,j*width/4,0);
+            //values_array_g=receive_pixel_values(test_image,length,i*height/4,j*width/4,1);
+            //values_array_b=receive_pixel_values(test_image,length,i*height/4,j*width/4,2);
+            /*for(auto x : values)
+                cout << x << " ";
+            cout << endl;*/
+
+            harmonic_stats.push_back(calc_amplitude_and_period(values));
         }
 
-    cout << harmonic_stats.size() << endl;
+
     for(auto x : harmonic_stats)
         cout << x.second << " ";
     cout << endl;
 
     const int avg_parameter = 3;
-    double pulse = calc_average_significant_pulse(harmonic_stats,avg_parameter);
+    vector<double> periods(harmonic_stats.size());
+    std::transform(harmonic_stats.begin(),harmonic_stats.end(),periods.begin(),[](harmonic_stat a){return a.second;});
+    double pulse = calc_average_significant_period(periods,avg_parameter);
 
-    cout << pulse << endl;
+    cout << pulse/sRate*60 << endl;
 
-    delete Pr1;
-    delete Curr_video;
+    //delete Pr1;
+    //delete Curr_video;
+
+    /*auto test = gen_sin_vector(280,80,4.5);
+    for(auto x : test)
+        cout << x << " ";
+    cout << endl;
+
+    auto result = calc_amplitude_and_period(test);
+    cout << result.first << " " << result.second << endl;*/
 
     return 0;
 }
