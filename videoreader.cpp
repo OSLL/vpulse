@@ -1,38 +1,30 @@
 #include "videoreader.h"
 
+VideoReader::VideoReader(int size)
+{
+    frames.reserve(size);
+    blured_frames.reserve(size);
+}
+
 VideoReader::VideoReader()
 {
-    av_register_all();
-    //this->frames=
-    //template<typename _Tp> _Tp* allocate(size_t n)
-    //template<Mat> Mat* allocate(100);
-    //this->frames=cv::allocate<Mat>(300);
-    //this->frames=cv::allocate<Mat(100,200,CV_8UC(3))>(300);
 }
+
 
  VideoReader::~VideoReader()
 {
-    //template<typename _Tp> void deallocate(_Tp* ptr, size_t n)
-     //template<Mat> void deallocate(this->frames,100);
-     //Mat::allocator
-     //cv::deallocate(this->frames,300);
-
-
-
 }
-int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level)
+int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, int framesLimit)
 {
     AVFormatContext *pFormatCtx=NULL;
 
-     // Open video file
-     //char* filename_in = "face.mp4";
     cout << videofilename_in << endl;
-     //Look header info
+
     if(avformat_open_input(&pFormatCtx, videofilename_in.c_str(), NULL, NULL)!=0)
     {
         printf("Couldn't open video file  \n");
         return -1;
-    } // Couldn't open file
+    }
 
      // Retrieve stream information
     if(avformat_find_stream_info(pFormatCtx,NULL)<0)
@@ -119,16 +111,18 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level)
               //Scale the raw data/convert it to our video buffer.
                 sws_scale(pSWSContext, pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);
              // Save the frame to disk
-                if(++i<=FRAMES_MAX)
+                if(++i<=framesLimit)
                 {
                  //Mat* image_mat=new Mat();//(pCodecCtx->height, pCodecCtx->width,pFrameRGB->linesize[0]*pCodecCtx->height, ch);
-                    this->frames[i-1]=new Mat();
-                    this->blured_frames[i-1]= new Mat();
-                    Mat* image_mat =this->frames[i-1];
-                    Mat* image_blured = this->blured_frames[i-1];
+                    Mat* image_mat = new Mat();
+                    Mat* image_blured = new Mat();
+
+                    frames.push_back(image_mat);
+                    blured_frames.push_back(image_blured);
 
                     image_mat->create(pCodecCtx->height,pCodecCtx->width,CV_8UC3);
                     image_blured->create(pCodecCtx->height,pCodecCtx->width,CV_8UC3);
+
                     for(int row=0; row<pCodecCtx->height;row++)
                         for(int col=0; col<pCodecCtx->width; col++)
                         {
@@ -151,12 +145,11 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level)
     }
 
 
-    NumberOfFrames=i-6; //throw out 6 last frames
-    frameHeight=blured_frames[0]->rows;
-    frameWidth=blured_frames[0]->cols;
-
-    //PyrUpBlured(pyramid_level);
-
+    NumberOfFrames = i - 6; //throw out 6 last frames
+    blurred_frameHeight = blured_frames[0]->rows;
+    blurred_frameWidth = blured_frames[0]->cols;
+    frameHeight = frames[0]->rows;
+    frameWidth = frames[0]->cols;
 
     av_free(buffer);
     av_free(pFrameRGB);
@@ -169,12 +162,64 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level)
     return 0;
 }
 
-void print_frame_txt(Mat* frame,const char* filename)
+int VideoReader::PrintFrames(void) const
+{
+   if(this->frames[0]==nullptr)
+   {
+        cout << "Error! No frames detected.\n" << endl;
+        return 1;
+   }
+
+   for(int i = 0; i < 2/*Numberofframes*/; i++)
+   {
+        const string frame_filename {"frame"+to_string(i)+".ppm"};
+        imwrite(frame_filename.c_str(), *(this->frames[i]));
+   }
+   return 0;
+}
+
+int VideoReader::getFrameHeight(void) const
+{
+    return frameHeight;
+}
+
+int VideoReader::getFrameWidth(void) const
+{
+    return frameWidth;
+}
+
+int VideoReader::getNumberOfFrames(void) const
+{
+    return NumberOfFrames;
+}
+
+int VideoReader::getBlurredFrameHeight(void) const
+{
+    return blurred_frameHeight;
+}
+
+int VideoReader::getBlurredFrameWidth(void) const
+{
+    return blurred_frameWidth;
+}
+
+Mat** VideoReader::getFrames(void)
+{
+    return frames.data();
+}
+
+Mat** VideoReader::getBluredFrames(void)
+{
+    return blured_frames.data();
+}
+
+
+void print_frame_txt(Mat* frame, const string &filename)
 {
     int fr_rows = frame->rows;
     int fr_cols = frame->cols;
     FILE * stream;
-            if ((stream=fopen(filename, "w")) != 0)
+    if (fopen_s(&stream,filename.c_str(), "w") == 0)
     {
         fprintf(stream, "row\t\t R \t\t\t G\t\t\tB\t\t\n");
         for(int curr_row = 0; curr_row < fr_rows; curr_row++)
@@ -189,76 +234,4 @@ void print_frame_txt(Mat* frame,const char* filename)
         }
     }
     fclose(stream);
-}
-
-int VideoReader::PrintFrames(void)
-{
-   if(this->frames[0]==nullptr)
-   {
-        cout << "Error! No frames detected.\n" << endl;
-        return 1;
-   }
-
-   for(int i = 0; i < NumberOfFrames; i++)
-   {
-        const string frame_filename {"frame"+to_string(i)+".ppm"};
-        imwrite(frame_filename.c_str(), *(this->frames[i]));
-   }
-   return 0;
-}
-
-int VideoReader::PyrUpBlured(int pyramid_level)
-{
-    if(pyramid_level>=1)
-    {
-        for(int NofFr = 0; NofFr < this->NumberOfFrames; NofFr++)
-        {
-            Mat* image_mat=this->blured_frames[NofFr];
-            for(int lvl = 1; lvl <= pyramid_level; lvl++)
-                resize(*image_mat, *image_mat, Size(image_mat->cols*2, image_mat->rows*2), 0, 0, INTER_CUBIC);
-        }
-    }
-    return 0;
-}
-
-int VideoReader::AddPulseToFrames(void)
-{
-    for(int NofFr = 0; NofFr < NumberOfFrames; NofFr++)
-    {
-        Mat* image_mat = frames[NofFr];
-        Mat* image_blured = blured_frames[NofFr];
-        for(int row = 0; row < frames[0]->rows; row++)
-            for(int col = 0; col < frames[0]->cols; col++)
-            {
-                image_mat->at<Vec3b>(row,col)[0] += image_blured->at<Vec3b>(row,col)[0];
-                image_mat->at<Vec3b>(row,col)[1] += image_blured->at<Vec3b>(row,col)[1];
-                image_mat->at<Vec3b>(row,col)[2] += image_blured->at<Vec3b>(row,col)[2];
-            }
-    }
-    return 0;
-}
-
-int VideoReader::getFrameHeight(void)
-{
-    return(this->frameHeight);
-}
-
-int VideoReader::getFrameWidth(void)
-{
-    return(this->frameWidth);
-}
-
-int VideoReader::getNumberOfFrames(void)
-{
-    return(this->NumberOfFrames);
-}
-
-Mat** VideoReader::getFrames(void)
-{
-    return(this->frames);
-}
-
-Mat** VideoReader::getBluredFrames(void)
-{
-    return(this->blured_frames);
 }

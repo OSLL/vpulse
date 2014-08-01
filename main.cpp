@@ -116,17 +116,16 @@ vector<double> receive_averaged_pixel_values(Mat** src, int NumberOfFrames, int 
 int main(int argc, char *argv[])
 {
     const string filename_in {"face.mp4"};
-
+    av_register_all();
     VideoReader* Curr_video=new VideoReader();
-    if (Curr_video->ReadFrames(filename_in,4)<0)
+    if (Curr_video->ReadFrames(filename_in,4,1000)<0)
     {
         cout << "Failed to read file" << endl;
         return -1;
     }
 
     const int sRate {30};
-    processor* Pr1 = new processor(Curr_video->getNumberOfFrames(),Curr_video->getFrameHeight(),Curr_video->getFrameWidth(), sRate, Curr_video->getBluredFrames());
-
+    processor* Pr1 = new processor(Curr_video->getNumberOfFrames(), sRate, Curr_video->getBluredFrames());
 
     /*int length = 200;
     int width = 500;
@@ -135,14 +134,14 @@ int main(int argc, char *argv[])
     double period = 30;
     Mat** test_image = gen_test_image(length,width,height,ampl,period);*/
 
-
     const double fr1 {50.0/60.0};
     const double fr2 {78.0/60.0};
     const double ampFactor {70.0};
 
-    Pr1->work(fr1,fr2,ampFactor);
+    Pr1->amplify(fr1,fr2,ampFactor);
     Pr1->AddPulseToFrames(Curr_video->getFrames(),Curr_video->getNumberOfFrames());
 
+    Curr_video->PrintFrames();
 //    vector<double> values_array_r,values_array_g,values_array_b;
     vector<harmonic_stat> harmonic_stats;
 
