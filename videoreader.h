@@ -2,14 +2,13 @@
 #define VIDEOREADER_H
 
 #include "Conf.h"
-using namespace cv;
 using namespace std;
 
 class VideoReader
 {
 private:
-    vector<Mat*> frames;
-    vector<Mat*> blured_frames;
+    vector<unique_ptr<Mat>> frames;
+    vector<unique_ptr<Mat>> blured_frames;
     int NumberOfFrames;
     int frameHeight;
     int frameWidth;
@@ -26,12 +25,8 @@ public:
     int getNumberOfFrames(void) const;
     int getBlurredFrameWidth(void) const;
 
-    Mat** getFrames(void);
-    Mat** getBluredFrames(void);
-
-    VideoReader(int size);
-    VideoReader();
-    ~VideoReader();
+    vector<unique_ptr<Mat>>& getFrames(void);
+    vector<unique_ptr<Mat>>& getBluredFrames(void);
 };
 
 void print_frame_txt(Mat* frame,const string& filename);

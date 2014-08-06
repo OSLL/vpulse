@@ -1,10 +1,10 @@
 #include "Conf.h"
 #include "videoreader.h"
 #include "processor.h"
+#include "Mat.cpp"
 
 #include <QCoreApplication>
 
-using namespace cv;
 using namespace std;
 
 #include<utility>
@@ -59,35 +59,40 @@ vector<double> gen_sin_vector(int length, double ampl, double period)
 
 Mat** gen_test_image(int length, int width, int height, double ampl, double period)
 {
-    Mat** res = new Mat*[length];
+    auto res = new Mat*[length];
 
     for(int i = 0; i < length; i++)
-        res[i] = new Mat(height,width,CV_8UC3);
+        res[i] = new Mat(height,width,3);
 
     for(int i = 0; i < height; i++)
         for(int j = 0; j < width; j++)
         {
             vector<double> values {gen_sin_vector(length,ampl,period)};
             for(int k = 0; k < length; k++)
-                res[k]->at<Vec3b>(i,j) = Vec3b(values[k],values[k],values[k]);
+            {
+                auto vec = res[k]->getVec(i,j);
+                vec[0] = values[k];
+                vec[1] = values[k];
+                vec[2] = values[k];
+            }
         }
 
     return res;
 }
 
 
-vector<double> receive_pixel_values(Mat** src, int NumberOfFrames, int row, int col, int channel)
+vector<double> receive_pixel_values(vector<unique_ptr<Mat>>& src, int NumberOfFrames, int row, int col, int channel)
 {
     vector<double> res(NumberOfFrames);
 
     for(int k = 0; k < (int)res.size(); k++)
-        res[k]=src[k]->at<Vec3b>(row,col)[channel];
+        res[k]=src[k]->getVec(row,col)[channel];
 
     return res;
 }
 
 
-vector<double> receive_averaged_pixel_values(Mat** src, int NumberOfFrames, int row, int col, double area_size)
+vector<double> receive_averaged_pixel_values(vector<unique_ptr<Mat>>& src, int NumberOfFrames, int row, int col, double area_size)
 {
     int count = 0;
     vector<double> res(NumberOfFrames);

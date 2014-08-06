@@ -6,8 +6,8 @@
 #define UINT64_C(c) (c ## ULL)
 #endif
 
-#include <cstdio>
 
+#include "Mat.h"
 extern "C"
 {
 
@@ -23,14 +23,10 @@ extern "C"
 {
 #include <fftw3.h>
 }
-#include <opencv2/core/core.hpp>
-#include <opencv2/features2d/features2d.hpp>
-#include <opencv2/nonfree/nonfree.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
 
+#include <memory>
+#include <algorithm>
 #include <iostream>
-#include <QDir>
 
 using complex_number = std::complex<double>;
 using complex_vector = std::vector<std::complex<double>>;

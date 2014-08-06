@@ -15,17 +15,15 @@ DEFINES += QT_NODLL
 
 SOURCES += main.cpp\
     videoreader.cpp \
-    processor.cpp
+    processor.cpp \
+    Mat.cpp
 
 HEADERS  += videoreader.h \
     Conf.h \
-    processor.h
+    processor.h \
+    Mat.h
 
-#LIBS += -LC:/opencv/build/x64/vc12/lib/ -lopencv_core248 -lopencv_highgui248 -lopencv_imgproc248 -lopencv_features2d248 -lopencv_nonfree248
-LIBS += -LC:/opencv/build/x64/vc12/lib/ -lopencv_core248d -lopencv_highgui248d -lopencv_imgproc248d -lopencv_features2d248d -lopencv_nonfree248d
-
-INCLUDEPATH += C:\opencv\build\include \
-    $$PWD/fftw
+INCLUDEPATH += $$PWD/fftw
 
 LIBS += -L$$PWD/fftw/ -llibfftw3-3
 

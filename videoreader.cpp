@@ -1,19 +1,40 @@
 #include "videoreader.h"
 
-VideoReader::VideoReader(int size)
+void pyrDown(Mat& img)
 {
-    frames.reserve(size);
-    blured_frames.reserve(size);
+    const int mask[5][5] =
+    {{1, 4, 6, 4, 1},
+     {4, 16, 24, 16, 4},
+     {6, 24, 36, 24, 6},
+     {4, 16, 24, 16, 4},
+     {1, 4, 6, 4, 1}};
+     Mat tmp(img.get_rows() - 4,img.get_cols() - 4,img.get_channels());
+     for(int i = 2; i < img.get_rows() - 2; i++)
+        for(int j = 2; j < img.get_cols() - 2; j++)
+            for(int ch = 0; ch < img.get_channels(); ch++)
+            {
+                double sum = 0;
+                for(int di = -2; di <= 2; di++)
+                    for(int dj = -2; dj <= 2; dj++)
+                        sum += img.at(i+di,j+dj,ch) * mask[di+2][dj+2];
+                sum /= (double)256.0;
+                //cout << (tmp.get_channels()*(tmp.get_cols()*i+j)+ch) << endl;
+                tmp.at(i-2,j-2,ch) = sum;
+            }
+    Mat res((tmp.get_rows()+1)/2,(tmp.get_cols()+1)/2,tmp.get_channels());
+
+    for(int i = 0; i < tmp.get_rows(); i += 2)
+        for(int j = 0; j < tmp.get_cols(); j += 2)
+            for(int ch = 0; ch < tmp.get_channels(); ch++)
+                res.at(i/2,j/2,ch) = tmp.at(i,j,ch);
+    /*Mat res((img.get_rows()+1)/2,(img.get_cols()+1)/2,img.get_channels());
+    for(int i = 0; i < img.get_rows(); i += 2)
+        for(int j = 0; j < img.get_cols(); j += 2)
+            for(int ch = 0; ch < img.get_channels(); ch++)
+                res.at(i/2,j/2,ch) = img.at(i,j,ch);*/
+    img = move(res);
 }
 
-VideoReader::VideoReader()
-{
-}
-
-
- VideoReader::~VideoReader()
-{
-}
 int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, int framesLimit)
 {
     AVFormatContext *pFormatCtx=NULL;
@@ -111,31 +132,33 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
               //Scale the raw data/convert it to our video buffer.
                 sws_scale(pSWSContext, pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);
              // Save the frame to disk
-                if(++i<=framesLimit)
+                if(i<=framesLimit)
                 {
+                    i++;
                  //Mat* image_mat=new Mat();//(pCodecCtx->height, pCodecCtx->width,pFrameRGB->linesize[0]*pCodecCtx->height, ch);
-                    Mat* image_mat = new Mat();
-                    Mat* image_blured = new Mat();
+                    auto image_mat = unique_ptr<Mat>(new Mat(pCodecCtx->height,pCodecCtx->width,3));
+                    //auto image_blured = new Mat<>(pCodecCtx->height,pCodecCtx->width,3);
 
-                    frames.push_back(image_mat);
-                    blured_frames.push_back(image_blured);
-
-                    image_mat->create(pCodecCtx->height,pCodecCtx->width,CV_8UC3);
-                    image_blured->create(pCodecCtx->height,pCodecCtx->width,CV_8UC3);
+                    //blured_frames.push_back(image_blured);
 
                     for(int row=0; row<pCodecCtx->height;row++)
                         for(int col=0; col<pCodecCtx->width; col++)
                         {
-                            image_mat->at<Vec3b>(row,col)[0]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+2];
-                            image_mat->at<Vec3b>(row,col)[1]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+1];
-                            image_mat->at<Vec3b>(row,col)[2]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+0];
+                            image_mat->getVec(row,col)[0]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+2];
+                            image_mat->getVec(row,col)[1]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+1];
+                            image_mat->getVec(row,col)[2]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+0];
 
-                            image_blured->at<Vec3b>(row,col)[0]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+2];
-                            image_blured->at<Vec3b>(row,col)[1]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+1];
-                            image_blured->at<Vec3b>(row,col)[2]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+0];
+                            /*image_blured->getVec(row,col)[0]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+2];
+                            image_blured->getVec(row,col)[1]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+1];
+                            image_blured->getVec(row,col)[2]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+0];*/
                         }
+
+                    unique_ptr<Mat> image_blured(new Mat(*image_mat));
                     for(int lvl=1; lvl<=pyramid_level;lvl++)
-                        pyrDown(*image_blured, *image_blured, Size(image_blured->cols/2, image_blured->rows/2));
+                        pyrDown(*image_blured);
+
+                    frames.push_back(move(image_mat));
+                    blured_frames.push_back(move(image_blured)); //image_mat and image_blurred are no longer valid
                 }
             }
         }
@@ -145,11 +168,11 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
     }
 
 
-    NumberOfFrames = i - 6; //throw out 6 last frames
-    blurred_frameHeight = blured_frames[0]->rows;
-    blurred_frameWidth = blured_frames[0]->cols;
-    frameHeight = frames[0]->rows;
-    frameWidth = frames[0]->cols;
+    NumberOfFrames = i;
+    blurred_frameHeight = blured_frames[0]->get_rows();
+    blurred_frameWidth = blured_frames[0]->get_cols();
+    frameHeight = frames[0]->get_rows();
+    frameWidth = frames[0]->get_cols();
 
     av_free(buffer);
     av_free(pFrameRGB);
@@ -173,7 +196,7 @@ int VideoReader::PrintFrames(void) const
    for(int i = 0; i < 2/*Numberofframes*/; i++)
    {
         const string frame_filename {"frame"+to_string(i)+".ppm"};
-        imwrite(frame_filename.c_str(), *(this->frames[i]));
+        //imwrite(frame_filename.c_str(), *(this->frames[i]));
    }
    return 0;
 }
@@ -203,35 +226,12 @@ int VideoReader::getBlurredFrameWidth(void) const
     return blurred_frameWidth;
 }
 
-Mat** VideoReader::getFrames(void)
+vector<unique_ptr<Mat>>& VideoReader::getFrames(void)
 {
-    return frames.data();
+    return frames;
 }
 
-Mat** VideoReader::getBluredFrames(void)
+vector<unique_ptr<Mat>>& VideoReader::getBluredFrames(void)
 {
-    return blured_frames.data();
-}
-
-
-void print_frame_txt(Mat* frame, const string &filename)
-{
-    int fr_rows = frame->rows;
-    int fr_cols = frame->cols;
-    FILE * stream;
-    if (fopen_s(&stream,filename.c_str(), "w") == 0)
-    {
-        fprintf(stream, "row\t\t R \t\t\t G\t\t\tB\t\t\n");
-        for(int curr_row = 0; curr_row < fr_rows; curr_row++)
-        {
-            fprintf(stream, "\n \t row = %d\n",curr_row);
-            for(int curr_col = 0; curr_col <fr_cols; curr_col++)
-            {
-                fprintf(stream, "%d %u \t|\t %u \t|\t %u",curr_row, frame->at<Vec3b>(curr_row,curr_col)[0],frame->at<Vec3b>(curr_row,curr_col)[1],frame->at<Vec3b>(curr_row,curr_col)[2]);
-                fputc('\n',stream);
-            }
-
-        }
-    }
-    fclose(stream);
+    return blured_frames;
 }

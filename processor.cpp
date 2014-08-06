@@ -1,19 +1,22 @@
 #include "processor.h"
+
+
 using namespace std;
 
 #include<functional>
 #include<cmath>
 
-void FramesToVector(Mat** src, vector<double>& dst, int NofFrames)
+void FramesToVector(vector<unique_ptr<Mat>>& src, vector<double>& dst)
 {
-    int frHeight = src[0]->rows;
-    int frWidth = src[0]->cols;
+    int NofFrames = src.size();
+    int frHeight = src[0]->get_rows();
+    int frWidth = src[0]->get_cols();
 
     for(int k = 0; k < NofFrames; k++)
         for(int row = 0; row < frHeight; row++)
             for(int col = 0; col < frWidth; col++)
             {
-                Vec3b source = src[k]->at<Vec3b>(row,col);
+                double* source = src[k]->getVec(row,col);
                 int destination_index {channels*(frWidth*frHeight*k+frWidth*row+col)};
                 dst[destination_index + 0] = source[0];
                 dst[destination_index + 1] = source[1];
@@ -21,31 +24,60 @@ void FramesToVector(Mat** src, vector<double>& dst, int NofFrames)
             }
 }
 
-
-processor::processor(int NumberOfFrames_in, int sRate_in, Mat** Frames):
-    NumberOfFrames(NumberOfFrames_in),
-    frameHeight(Frames[0]->rows),
-    frameWidth(Frames[0]->cols),
-    samplingRate(sRate_in),
-    AllFrames(NumberOfFrames*frameHeight*frameWidth*channels)
+void FramesToVector(unique_ptr<Mat>& src, vector<double>& dst)
 {
-    FramesToVector(Frames, AllFrames, NumberOfFrames);
+    int frHeight = src->get_rows();
+    int frWidth = src->get_cols();
+
+    for(int row = 0; row < frHeight; row++)
+       for(int col = 0; col < frWidth; col++)
+       {
+           auto source = src->getVec(row,col);
+           int destination_index {channels*(frWidth*row+col)};
+           dst[destination_index + 0] = source[0];
+           dst[destination_index + 1] = source[1];
+           dst[destination_index + 2] = source[2];
+       }
 }
 
-void VectorToFrames(const vector<double>& src, Mat** dst, int frWidth, int frHeight, int NofFrames)
+
+void VectorToFrames(const vector<double>& src, vector<unique_ptr<Mat>>& dst, int frWidth, int frHeight)
 {
+    int NofFrames = dst.size();
     for(int k = 0; k < NofFrames; k++)
         for(int row = 0; row < frHeight; row++)
             for(int col = 0; col < frWidth; col++)
             {
-                Vec3b* destination = &(dst[k]->at<Vec3b>(row,col));
+                auto destination = dst[k]->getVec(row,col);
                 int source_index {channels*(frWidth*frHeight*k+frWidth*row+col)};
-                (*destination)[0] = src[source_index + 0];
-                (*destination)[1] = src[source_index + 1];
-                (*destination)[2] = src[source_index + 2];
+                destination[0] = src[source_index + 0];
+                destination[1] = src[source_index + 1];
+                destination[2] = src[source_index + 2];
             }
 }
 
+void VectorToFrames(const vector<double>& src, unique_ptr<Mat>& dst, int frWidth, int frHeight)
+{
+   for(int row = 0; row < frHeight; row++)
+      for(int col = 0; col < frWidth; col++)
+      {
+          auto destination = dst->getVec(row,col);
+          int source_index {channels*(frWidth*row+col)};
+          destination[0] = src[source_index + 0];
+          destination[1] = src[source_index + 1];
+          destination[2] = src[source_index + 2];
+      }
+}
+
+processor::processor(int NumberOfFrames_in, int sRate_in, vector<unique_ptr<Mat>>& Frames):
+    NumberOfFrames(NumberOfFrames_in),
+    frameHeight(Frames[0]->get_rows()),
+    frameWidth(Frames[0]->get_cols()),
+    samplingRate(sRate_in),
+    AllFrames(NumberOfFrames*frameHeight*frameWidth*channels)
+{
+    FramesToVector(Frames, AllFrames);
+}
 
 void rgb2yiq(vector<double>& srcDst, int frWidth, int frHeight, int NofFrames, bool rev)
 {
@@ -145,18 +177,18 @@ void YIQ2RGBnormalizeColorChannels(vector<double>& srcDst, int frWidth, int frHe
     }
 }
 
-int processor::AddPulseToFrames(Mat** frames, int NofFrames) const
+int processor::AddPulseToFrames(vector<unique_ptr<Mat> > &frames, int NofFrames) const
 {
-    const int FrWidth {frames[0]->cols};
-    const int FrHeight {frames[0]->rows};
-    const int FrChannels {frames[0]->channels()};
+    const int FrWidth {frames[0]->get_cols()};
+    const int FrHeight {frames[0]->get_rows()};
+    const int FrChannels {frames[0]->get_channels()};
     const int frame_size {FrHeight*FrWidth*FrChannels};
     vector<double> fullFrame(frame_size);
     vector<double> pulseFrame(frame_size);
 
     for(int frame_number = 0; frame_number < NofFrames; frame_number++)
     {
-        FramesToVector(&frames[frame_number], fullFrame, 1);
+        FramesToVector(frames[frame_number], fullFrame);
         normalize(fullFrame,255.0);
         rgb2yiq(fullFrame, FrHeight, FrWidth, 1, false);
         NearInterpolation(AllFrames,pulseFrame,frameWidth,frameHeight,FrWidth,FrHeight,
@@ -167,7 +199,7 @@ int processor::AddPulseToFrames(Mat** frames, int NofFrames) const
         std::transform(fullFrame.begin(),fullFrame.end(),fullFrame.begin(),
                        [](double a){if (a > 1) return 1.0; if (a < 0) return 0.0; return a;});
         normalize(fullFrame,1.0/255);
-        VectorToFrames(fullFrame, &frames[frame_number], FrWidth, FrHeight, 1);
+        VectorToFrames(fullFrame, frames[frame_number], FrWidth, FrHeight);
     }
     return 0;
 }
@@ -216,7 +248,7 @@ vector<double> processor::receive_pixel_values(int row, int col, int channel) co
 void processor::insert_pixel_values(const vector<double>& values, int row, int col, int channel)
 {
     if (values.size() != NumberOfFrames)
-        throw Exception();
+        throw std::exception();
     for(int k = 0; k < (int)values.size(); k++)
         AllFrames[calc_pixel_coor(k,row,col,channel)] = values[k];
 
