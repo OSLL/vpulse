@@ -18,7 +18,6 @@ void pyrDown(Mat& img)
                     for(int dj = -2; dj <= 2; dj++)
                         sum += img.at(i+di,j+dj,ch) * mask[di+2][dj+2];
                 sum /= (double)256.0;
-                //cout << (tmp.get_channels()*(tmp.get_cols()*i+j)+ch) << endl;
                 tmp.at(i-2,j-2,ch) = sum;
             }
     Mat res((tmp.get_rows()+1)/2,(tmp.get_cols()+1)/2,tmp.get_channels());
@@ -27,11 +26,6 @@ void pyrDown(Mat& img)
         for(int j = 0; j < tmp.get_cols(); j += 2)
             for(int ch = 0; ch < tmp.get_channels(); ch++)
                 res.at(i/2,j/2,ch) = tmp.at(i,j,ch);
-    /*Mat res((img.get_rows()+1)/2,(img.get_cols()+1)/2,img.get_channels());
-    for(int i = 0; i < img.get_rows(); i += 2)
-        for(int j = 0; j < img.get_cols(); j += 2)
-            for(int ch = 0; ch < img.get_channels(); ch++)
-                res.at(i/2,j/2,ch) = img.at(i,j,ch);*/
     img = move(res);
 }
 
@@ -91,10 +85,10 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
       return -1; // Could not open codec
 
      // Allocate video frame
-    AVFrame* pFrame = avcodec_alloc_frame();
+    AVFrame* pFrame = av_frame_alloc();
 
      // Allocate an AVFrame structure
-    AVFrame* pFrameRGB = avcodec_alloc_frame();
+    AVFrame* pFrameRGB = av_frame_alloc();
     if(pFrameRGB==NULL)
         return -1;
 
@@ -108,9 +102,6 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
      // Note that pFrameRGB is an AVFrame, but AVFrame is a superset
      // of AVPicture
     avpicture_fill((AVPicture *)pFrameRGB, buffer, PIX_FMT_RGB24,pCodecCtx->width, pCodecCtx->height);
-
-     //this->frameHeight=pCodecCtx->height;
-     //this->frameWidth=pCodecCtx->width;
 
     SwsContext *pSWSContext = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height, PIX_FMT_RGB24, SWS_BILINEAR, 0, 0, 0);
 
@@ -135,11 +126,7 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
                 if(i<=framesLimit)
                 {
                     i++;
-                 //Mat* image_mat=new Mat();//(pCodecCtx->height, pCodecCtx->width,pFrameRGB->linesize[0]*pCodecCtx->height, ch);
                     auto image_mat = unique_ptr<Mat>(new Mat(pCodecCtx->height,pCodecCtx->width,3));
-                    //auto image_blured = new Mat<>(pCodecCtx->height,pCodecCtx->width,3);
-
-                    //blured_frames.push_back(image_blured);
 
                     for(int row=0; row<pCodecCtx->height;row++)
                         for(int col=0; col<pCodecCtx->width; col++)
@@ -147,10 +134,6 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
                             image_mat->getVec(row,col)[0]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+2];
                             image_mat->getVec(row,col)[1]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+1];
                             image_mat->getVec(row,col)[2]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+0];
-
-                            /*image_blured->getVec(row,col)[0]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+2];
-                            image_blured->getVec(row,col)[1]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+1];
-                            image_blured->getVec(row,col)[2]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+0];*/
                         }
 
                     unique_ptr<Mat> image_blured(new Mat(*image_mat));
@@ -183,22 +166,6 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
      // Close the video file
     avformat_close_input(&pFormatCtx);
     return 0;
-}
-
-int VideoReader::PrintFrames(void) const
-{
-   if(this->frames[0]==nullptr)
-   {
-        cout << "Error! No frames detected.\n" << endl;
-        return 1;
-   }
-
-   for(int i = 0; i < 2/*Numberofframes*/; i++)
-   {
-        const string frame_filename {"frame"+to_string(i)+".ppm"};
-        //imwrite(frame_filename.c_str(), *(this->frames[i]));
-   }
-   return 0;
 }
 
 int VideoReader::getFrameHeight(void) const

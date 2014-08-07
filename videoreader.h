@@ -17,7 +17,6 @@ private:
 public:
 
     int ReadFrames(const string& videofilename_in, int pyramid_level, int framesLimit);
-    int PrintFrames(void) const;
 
     int getFrameHeight(void) const;
     int getFrameWidth(void) const;
@@ -28,7 +27,5 @@ public:
     vector<unique_ptr<Mat>>& getFrames(void);
     vector<unique_ptr<Mat>>& getBluredFrames(void);
 };
-
-void print_frame_txt(Mat* frame,const string& filename);
 
 #endif // VIDEOREADER_H

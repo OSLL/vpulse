@@ -14,6 +14,7 @@ using namespace std;
 
 
 using harmonic_stat = pair<double,double>;
+using Point = pair<int,int>;
 
 harmonic_stat calc_amplitude_and_period(vector<double> values)
 {
@@ -92,6 +93,12 @@ vector<double> receive_pixel_values(vector<unique_ptr<Mat>>& src, int NumberOfFr
 }
 
 
+bool is_in_circle(double x, double y, double area_size)
+{
+    return ((x*x+y*y) <= area_size*area_size);
+}
+
+
 vector<double> receive_averaged_pixel_values(vector<unique_ptr<Mat>>& src, int NumberOfFrames, int row, int col, double area_size)
 {
     int count = 0;
@@ -99,17 +106,18 @@ vector<double> receive_averaged_pixel_values(vector<unique_ptr<Mat>>& src, int N
     for(int i = row - area_size; i < row + area_size; i++)
         for(int j = col - area_size; j < col + area_size; j++)
         {
-            if (((i-row)*(i-row)+(j-col)*(j-col)) <= area_size*area_size)
-            {
-                vector<double> values_array_r{receive_pixel_values(src,NumberOfFrames,row,col,0)};
-                vector<double> values_array_g{receive_pixel_values(src,NumberOfFrames,row,col,1)};
-                vector<double> values_array_b{receive_pixel_values(src,NumberOfFrames,row,col,2)};
-                vector<double> monochrome_values(values_array_b.size());
-                for(int i = 0; i < values_array_b.size(); i++)
-                    monochrome_values[i] = sqrt((values_array_b[i]*values_array_b[i]+values_array_g[i]*values_array_g[i]+values_array_r[i]*values_array_r[i])/3);
-                std::transform(res.begin(), res.end(), monochrome_values.begin(), res.begin(), std::plus<double>());
-                count++;
-            }
+            if (i >= 0 && j >= 0)
+                if (is_in_circle(j-col,i-row,area_size))
+                {
+                    vector<double> values_array_r{receive_pixel_values(src,NumberOfFrames,row,col,0)};
+                    vector<double> values_array_g{receive_pixel_values(src,NumberOfFrames,row,col,1)};
+                    vector<double> values_array_b{receive_pixel_values(src,NumberOfFrames,row,col,2)};
+                    vector<double> monochrome_values(values_array_b.size());
+                    for(int i = 0; i < values_array_b.size(); i++)
+                        monochrome_values[i] = sqrt((values_array_b[i]*values_array_b[i]+values_array_g[i]*values_array_g[i]+values_array_r[i]*values_array_r[i])/3);
+                    std::transform(res.begin(), res.end(), monochrome_values.begin(), res.begin(), std::plus<double>());
+                    count++;
+                }
         }
     for(auto& x : res)
         x /= count;
@@ -118,79 +126,75 @@ vector<double> receive_averaged_pixel_values(vector<unique_ptr<Mat>>& src, int N
 }
 
 
-int main(int argc, char *argv[])
+
+double calculate_pulse(VideoReader& video, vector<Point>& points, double fr1, double fr2, double ampFactor, int avg_parameter, double area_radius)
+{
+    const int sRate {30};
+    processor Pr1(video.getNumberOfFrames(), sRate, video.getBluredFrames());
+
+    Pr1.amplify(fr1,fr2,ampFactor);
+    Pr1.AddPulseToFrames(video.getFrames(), video.getNumberOfFrames());
+
+    vector<harmonic_stat> harmonic_stats;
+
+    for(auto p : points)
+    {
+        vector<double> values {receive_averaged_pixel_values(video.getFrames(),video.getNumberOfFrames(),p.second,p.first,area_radius)};
+        harmonic_stats.push_back(calc_amplitude_and_period(values));
+    }
+
+    vector<double> periods(harmonic_stats.size());
+    std::transform(harmonic_stats.begin(),harmonic_stats.end(),periods.begin(),[](harmonic_stat a){return a.second;}); //extract periods
+
+    double pulse = calc_average_significant_period(periods,avg_parameter)/sRate*60;
+
+    return pulse;
+}
+
+
+vector<Point> standart_points(int width, int height)
+{
+    vector<Point> res;
+    for(int i = 1; i <= 3; i++)
+        for(int j = 1; j <= 3; j++)
+        {
+            res.push_back(Point(width*i/4,height*j/4));
+        }
+    return res;
+}
+
+
+vector<Point> find_points_of_interest(VideoReader& video)
+{
+    const int min_points {3};
+    vector<Point> res;
+    //TODO
+    if (res.size() < min_points)
+        res = standart_points(video.getFrameWidth(),video.getFrameHeight());
+    return res;
+}
+
+int main()
 {
     const string filename_in {"face.mp4"};
     av_register_all();
-    VideoReader* Curr_video=new VideoReader();
-    if (Curr_video->ReadFrames(filename_in,4,1000)<0)
+    const int frames_max {1000};
+    VideoReader Curr_video;
+    if (Curr_video.ReadFrames(filename_in,4,frames_max)<0)
     {
         cout << "Failed to read file" << endl;
         return -1;
     }
 
-    const int sRate {30};
-    processor* Pr1 = new processor(Curr_video->getNumberOfFrames(), sRate, Curr_video->getBluredFrames());
-
-    /*int length = 200;
-    int width = 500;
-    int height = 500;
-    double ampl = 50;
-    double period = 30;
-    Mat** test_image = gen_test_image(length,width,height,ampl,period);*/
-
     const double fr1 {50.0/60.0};
     const double fr2 {78.0/60.0};
     const double ampFactor {70.0};
+    const int avg_parameter {3};
+    const double area_radius {3.0};
 
-    Pr1->amplify(fr1,fr2,ampFactor);
-    Pr1->AddPulseToFrames(Curr_video->getFrames(),Curr_video->getNumberOfFrames());
+    vector<Point> points{find_points_of_interest(Curr_video)};
 
-    Curr_video->PrintFrames();
-//    vector<double> values_array_r,values_array_g,values_array_b;
-    vector<harmonic_stat> harmonic_stats;
-
-    for(int i = 1; i <= 3; i++)
-        for(int j = 1; j <= 3; j++)
-        {
-            //values_array_r=receive_pixel_values(Curr_video->getFrames(),Curr_video->getNumberOfFrames(),i*Curr_video->getFrameHeight()/4,j*Curr_video->getFrameWidth()/4,0);
-            //values_array_g=receive_pixel_values(Curr_video->getFrames(),Curr_video->getNumberOfFrames(),i*Curr_video->getFrameHeight()/4,j*Curr_video->getFrameWidth()/4,1);
-            //values_array_b=receive_pixel_values(Curr_video->getFrames(),Curr_video->getNumberOfFrames(),i*Curr_video->getFrameHeight()/4,j*Curr_video->getFrameWidth()/4,2);
-            vector<double> values {receive_averaged_pixel_values(Curr_video->getFrames(),Curr_video->getNumberOfFrames(),i*Curr_video->getFrameHeight()/4,j*Curr_video->getFrameWidth()/4,3.0)};
-
-            //values_array_r=receive_pixel_values(test_image,length,i*height/4,j*width/4,0);
-            //values_array_g=receive_pixel_values(test_image,length,i*height/4,j*width/4,1);
-            //values_array_b=receive_pixel_values(test_image,length,i*height/4,j*width/4,2);
-            /*for(auto x : values)
-                cout << x << " ";
-            cout << endl;*/
-
-            harmonic_stats.push_back(calc_amplitude_and_period(values));
-        }
-
-
-    for(auto x : harmonic_stats)
-        cout << x.second << " ";
-    cout << endl;
-
-    const int avg_parameter = 3;
-    vector<double> periods(harmonic_stats.size());
-    std::transform(harmonic_stats.begin(),harmonic_stats.end(),periods.begin(),[](harmonic_stat a){return a.second;});
-    double pulse = calc_average_significant_period(periods,avg_parameter);
-
-    cout << pulse/sRate*60 << endl;
-
-    //delete Pr1;
-    //delete Curr_video;
-
-    /*auto test = gen_sin_vector(280,80,4.5);
-    for(auto x : test)
-        cout << x << " ";
-    cout << endl;
-
-    auto result = calc_amplitude_and_period(test);
-    cout << result.first << " " << result.second << endl;*/
-
+    cout << calculate_pulse(Curr_video,points,fr1,fr2,ampFactor,avg_parameter,area_radius) << endl;
     return 0;
 }
 
