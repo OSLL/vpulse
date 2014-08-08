@@ -1,301 +1,204 @@
 #include "videoreader.h"
 
-VideoReader::VideoReader()
+void pyrDown(Mat& img)
 {
-    av_register_all();
-    //this->frames=
-    //template<typename _Tp> _Tp* allocate(size_t n)
-    //template<Mat> Mat* allocate(100);
-    //this->frames=cv::allocate<Mat>(300);
-    //this->frames=cv::allocate<Mat(100,200,CV_8UC(3))>(300);
+    const int mask[5][5] =
+    {{1, 4, 6, 4, 1},
+     {4, 16, 24, 16, 4},
+     {6, 24, 36, 24, 6},
+     {4, 16, 24, 16, 4},
+     {1, 4, 6, 4, 1}};
+     Mat tmp(img.get_rows() - 4,img.get_cols() - 4,img.get_channels());
+     for(int i = 2; i < img.get_rows() - 2; i++)
+        for(int j = 2; j < img.get_cols() - 2; j++)
+            for(int ch = 0; ch < img.get_channels(); ch++)
+            {
+                double sum = 0;
+                for(int di = -2; di <= 2; di++)
+                    for(int dj = -2; dj <= 2; dj++)
+                        sum += img.at(i+di,j+dj,ch) * mask[di+2][dj+2];
+                sum /= (double)256.0;
+                tmp.at(i-2,j-2,ch) = sum;
+            }
+    Mat res((tmp.get_rows()+1)/2,(tmp.get_cols()+1)/2,tmp.get_channels());
+
+    for(int i = 0; i < tmp.get_rows(); i += 2)
+        for(int j = 0; j < tmp.get_cols(); j += 2)
+            for(int ch = 0; ch < tmp.get_channels(); ch++)
+                res.at(i/2,j/2,ch) = tmp.at(i,j,ch);
+    img = move(res);
 }
 
- VideoReader::~VideoReader()
+int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, int framesLimit)
 {
-    //template<typename _Tp> void deallocate(_Tp* ptr, size_t n)
-     //template<Mat> void deallocate(this->frames,100);
-     //Mat::allocator
-     //cv::deallocate(this->frames,300);
+    AVFormatContext *pFormatCtx=NULL;
 
+    cout << videofilename_in << endl;
 
-
-}
-int VideoReader::ReadFrames(const char* videofilename_in, int pyramid_level)
- {
-     AVFormatContext *pFormatCtx=NULL;
-
-     // Open video file
-     //char* filename_in = "face.mp4";
-
-     //Look header info
-     if(avformat_open_input(&pFormatCtx, videofilename_in, NULL, NULL)!=0)
-          {printf("Couldn't open video file  \n");return -1;} // Couldn't open file
+    if(avformat_open_input(&pFormatCtx, videofilename_in.c_str(), NULL, NULL)!=0)
+    {
+        printf("Couldn't open video file  \n");
+        return -1;
+    }
 
      // Retrieve stream information
-     if(avformat_find_stream_info(pFormatCtx,NULL)<0)
-       {printf("Couldn't find stream information\n");return -1;} // Couldn't find stream information
+    if(avformat_find_stream_info(pFormatCtx,NULL)<0)
+    {
+        printf("Couldn't find stream information\n");
+        return -1;
+    }
 
      // Dump information about file onto standard error
-     av_dump_format(pFormatCtx, 0, videofilename_in, 0);
-
+    av_dump_format(pFormatCtx, 0, videofilename_in.c_str(), 0);
 
      //search video stream
-     int i;
-     AVCodecContext *pCodecCtx;
+    AVCodecContext *pCodecCtx;
 
      // Find the first video stream
-     int videoStream=-1;
-     for(i=0; i<pFormatCtx->nb_streams; i++)
-       if(pFormatCtx->streams[i]->codec->codec_type==AVMEDIA_TYPE_VIDEO) {
-         videoStream=i;
-         break;
-       }
-     if(videoStream==-1)
-       return -1; // Didn't find a video stream
+    int videoStream=-1;
+    for(unsigned int i = 0; i < pFormatCtx->nb_streams; i++)
+        if(pFormatCtx->streams[i]->codec->codec_type==AVMEDIA_TYPE_VIDEO)
+        {
+            videoStream=i;
+            break;
+        }
+
+    if (videoStream==-1)
+        return -1; // Didn't find a video stream
 
      // Get a pointer to the codec context for the video stream
-     pCodecCtx=pFormatCtx->streams[videoStream]->codec;
+    pCodecCtx=pFormatCtx->streams[videoStream]->codec;
 
 
      //Search codec
-     AVCodec *pCodec;
+    AVCodec *pCodec;
 
      // Find the decoder for the video stream
-     pCodec=avcodec_find_decoder(pCodecCtx->codec_id);
-     if(pCodec==NULL) {
-       fprintf(stderr, "Unsupported codec!\n");
-       return -1; // Codec not found
-     }
+    pCodec=avcodec_find_decoder(pCodecCtx->codec_id);
+    if(pCodec==NULL)
+    {
+      cout << "Unsupported codec!\n" << endl;
+      return -1; // Codec not found
+    }
      // Open codec
-     if(avcodec_open(pCodecCtx, pCodec)<0)
-       return -1; // Could not open codec
-
-     //Store frame
-     AVFrame *pFrame;
+    if(avcodec_open2(pCodecCtx, pCodec, nullptr) < 0)
+      return -1; // Could not open codec
 
      // Allocate video frame
-     pFrame=avcodec_alloc_frame();
-
+    AVFrame* pFrame = av_frame_alloc();
 
      // Allocate an AVFrame structure
-     AVFrame * pFrameRGB=avcodec_alloc_frame();
-     if(pFrameRGB==NULL)
-       return -1;
+    AVFrame* pFrameRGB = av_frame_alloc();
+    if(pFrameRGB==NULL)
+        return -1;
 
-     uint8_t *buffer;
-     int numBytes;
+
      // Determine required buffer size and allocate buffer
-     numBytes=avpicture_get_size(PIX_FMT_RGB24, pCodecCtx->width,
-                                 pCodecCtx->height);
-     buffer=(uint8_t *)av_malloc(numBytes*sizeof(uint8_t));
+    int numBytes {avpicture_get_size(PIX_FMT_RGB24, pCodecCtx->width,pCodecCtx->height)};
+    uint8_t *buffer = (uint8_t*)av_malloc(sizeof(uint8_t)*numBytes);
 
 
      // Assign appropriate parts of buffer to image planes in pFrameRGB
      // Note that pFrameRGB is an AVFrame, but AVFrame is a superset
      // of AVPicture
-     avpicture_fill((AVPicture *)pFrameRGB, buffer, PIX_FMT_RGB24,
-                     pCodecCtx->width, pCodecCtx->height);
+    avpicture_fill((AVPicture *)pFrameRGB, buffer, PIX_FMT_RGB24,pCodecCtx->width, pCodecCtx->height);
 
-     //this->frameHeight=pCodecCtx->height;
-     //this->frameWidth=pCodecCtx->width;
+    SwsContext *pSWSContext = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height, PIX_FMT_RGB24, SWS_BILINEAR, 0, 0, 0);
 
-     SwsContext *pSWSContext = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height, PIX_FMT_RGB24, SWS_BILINEAR, 0, 0, 0);
+    int frameFinished;
+    AVPacket packet;
 
-     int frameFinished;
-     AVPacket packet;
-
-     i=0;
-     while(av_read_frame(pFormatCtx, &packet)>=0)
-     {
+    int i = 0;
+    while(av_read_frame(pFormatCtx, &packet)>=0)
+    {
        // Is this a packet from the video stream?
-       if(packet.stream_index==videoStream)
-       {
-             // Decode video frame
-         avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished,
-                              &packet);
+        if(packet.stream_index==videoStream)
+        {
+            // Decode video frame
+            avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished, &packet);
 
          // Did we get a video frame?
-         if(frameFinished)
-         {
+            if(frameFinished)
+            {
               //Scale the raw data/convert it to our video buffer.
-             sws_scale(pSWSContext, pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);
+                sws_scale(pSWSContext, pFrame->data, pFrame->linesize, 0, pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);
              // Save the frame to disk
-             if(++i<=FRAMES_MAX)
-             {
-                 char* imageOutName = "frame1_mat.ppm";
-                 char* imageDownName = "frame1_down_new.ppm";
-                 //Mat* image_mat=new Mat();//(pCodecCtx->height, pCodecCtx->width,pFrameRGB->linesize[0]*pCodecCtx->height, ch);
-                 this->frames[i-1]=new Mat();
-                 this->blured_frames[i-1]= new Mat();
-                 Mat*image_mat =this->frames[i-1];
-                 Mat*image_blured = this->blured_frames[i-1];
-                 //image_mat->create(pCodecCtx->height,pCodecCtx->width,CV_8UC(3));
-                image_mat->create(pCodecCtx->height,pCodecCtx->width,CV_8UC(3));
-                image_blured->create(pCodecCtx->height,pCodecCtx->width,CV_8UC(3));
-                 for(int row=0; row<pCodecCtx->height;row++)
-                 {
-                     for(int col=0; col<pCodecCtx->width; col++)
-                     {
-                         image_mat->at<Vec3b>(row,col)[0]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+2];
-                         image_mat->at<Vec3b>(row,col)[1]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+1];
-                         image_mat->at<Vec3b>(row,col)[2]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+0];
+                if(i<=framesLimit)
+                {
+                    i++;
+                    auto image_mat = unique_ptr<Mat>(new Mat(pCodecCtx->height,pCodecCtx->width,3));
 
-                         image_blured->at<Vec3b>(row,col)[0]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+2];
-                         image_blured->at<Vec3b>(row,col)[1]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+1];
-                         image_blured->at<Vec3b>(row,col)[2]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+0];
-                        // if((row<5)&&(col<5)&&(i<5))
-                        // {
-                        //     printf("image_mat->at<Vec3b>(row,col)[0]=%uc\n",image_mat->at<Vec3b>(row,col)[0]);
-                        //     printf("image_mat->at<Vec3b>(row,col)[1]=%uc\n",image_mat->at<Vec3b>(row,col)[1]);
-                        //     printf("image_mat->at<Vec3b>(row,col)[2]=%uc\n",image_mat->at<Vec3b>(row,col)[2]);
-                        // }
-                     }
+                    for(int row=0; row<pCodecCtx->height;row++)
+                        for(int col=0; col<pCodecCtx->width; col++)
+                        {
+                            image_mat->getVec(row,col)[0]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+2];
+                            image_mat->getVec(row,col)[1]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+1];
+                            image_mat->getVec(row,col)[2]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+0];
+                        }
 
-                 }
+                    unique_ptr<Mat> image_blured(new Mat(*image_mat));
+                    for(int lvl=1; lvl<=pyramid_level;lvl++)
+                        pyrDown(*image_blured);
 
-               //imwrite( imageOutName, *(this->frames[i-1]) );
-               if(pyramid_level>=1)
-               {
-                    //Mat* image_down = new Mat(*image_mat);
-                   for(int lvl=1; lvl<=pyramid_level;lvl++)
-                   {
-                    pyrDown(*image_blured, *image_blured, Size(image_blured->cols/2, image_blured->rows/2));
-                   }
-               }
-               //imwrite(imageDownName, *image_mat);
-               //SaveFrame(pFrameRGB, pCodecCtx->width, pCodecCtx->height, i);
-
-             }
-         }
-       }
+                    frames.push_back(move(image_mat));
+                    blured_frames.push_back(move(image_blured)); //image_mat and image_blurred are no longer valid
+                }
+            }
+        }
 
        // Free the packet that was allocated by av_read_frame
-       av_free_packet(&packet);
-     }
+        av_free_packet(&packet);
+    }
 
-     this->frameHeight=this->blured_frames[0]->rows;
-     this->frameWidth=this->blured_frames[0]->cols;
-     this->NumberOfFrames=i-6; //throw out 6 last frames
-     printf("numberOfFrames(-6)=%d\n",this->NumberOfFrames);
-     av_free(buffer);
-     av_free(pFrameRGB);
-     // Free the YUV frame
-     av_free(pFrame);
 
+    NumberOfFrames = i;
+    blurred_frameHeight = blured_frames[0]->get_rows();
+    blurred_frameWidth = blured_frames[0]->get_cols();
+    frameHeight = frames[0]->get_rows();
+    frameWidth = frames[0]->get_cols();
+
+    av_free(buffer);
+    av_free(pFrameRGB);
+    // Free the YUV frame
+    av_free(pFrame);
      // Close the codec
-     avcodec_close(pCodecCtx);
-
+    avcodec_close(pCodecCtx);
      // Close the video file
-     av_close_input_file(pFormatCtx);
-
- }
-
-void print_frame_txt(Mat* frame,const char* filename)
-{
-    int fr_rows = frame->rows;
-    int fr_cols = frame->cols;
-    FILE * stream;
-            if ((stream=fopen(filename, "w")) != 0)
-    {
-        fprintf(stream, "row\t\t R \t\t\t G\t\t\tB\t\t\n");
-        for(int curr_row = 0; curr_row < fr_rows; curr_row++)
-        {
-            fprintf(stream, "\n \t row = %d\n",curr_row);
-            for(int curr_col = 0; curr_col <fr_cols; curr_col++)
-            {
-                fprintf(stream, "%d %u \t|\t %u \t|\t %u",curr_row, frame->at<Vec3b>(curr_row,curr_col)[0],frame->at<Vec3b>(curr_row,curr_col)[1],frame->at<Vec3b>(curr_row,curr_col)[2]);
-                fputc('\n',stream);
-            }
-
-        }
-    }
-    fclose(stream);
+    avformat_close_input(&pFormatCtx);
+    return 0;
 }
 
-int VideoReader::PrintFrames(void)
+int VideoReader::getFrameHeight(void) const
 {
-    if(this->frames[0]==NULL)
-    {
-        printf("Error! No frames detected.\n");return(1);
-    }
-    else
-    {
-        char frame_filename[30];
-        char frame_filename_txt[30];
-        char frame_filenameB_txt[32];
-
-        for(int i=0; i<NumberOfFrames; i++)
-        {
-            //if((i<10)||(i>NumberOfFrames-10)){              //FIXME
-            sprintf(frame_filename, "frame%d.ppm", i);
-            //sprintf(frame_filename_txt, "FramesInputTxt/frame%d.txt",i);
-            //sprintf(frame_filenameB_txt, "FramesBlurredTxt/frame%d.txt",i);
-            imwrite(frame_filename, *(this->frames[i]));
-
-            //print_frame_txt(this->frames[i],frame_filename_txt);
-            //if((i<5)||(i>282)){
-            //    print_frame_txt(this->blured_frames[i],frame_filenameB_txt);}
-            //}
-        }
-    }
-
+    return frameHeight;
 }
 
-int VideoReader::PyrUpBlured(int pyramid_level)
+int VideoReader::getFrameWidth(void) const
 {
-    if(pyramid_level>=1)
-    {
-        for(int NofFr = 0; NofFr < this->NumberOfFrames; NofFr++)
-        {
-            Mat* image_mat=this->blured_frames[NofFr];
-            for(int lvl=1; lvl<=pyramid_level;lvl++)
-            {
-                //pyrUp(*image_mat, *image_mat, Size(image_mat->cols*2, image_mat->rows*2));
-                resize(*image_mat,*image_mat,Size(image_mat->cols*2, image_mat->rows*2),0,0,INTER_CUBIC);
-            }
-        }
-    }
+    return frameWidth;
 }
 
-int VideoReader::AddPulseToFrames(void)
+int VideoReader::getNumberOfFrames(void) const
 {
-    for(int NofFr = 0; NofFr < this->NumberOfFrames; NofFr++)
-    {
-        Mat* image_mat=this->frames[NofFr];
-        Mat* image_blured=this->blured_frames[NofFr];
-        for(int row=0; row<this->frames[0]->rows;row++)
-        {
-            for(int col=0; col<this->frames[0]->cols; col++)
-            {
-                image_mat->at<Vec3b>(row,col)[0]=image_mat->at<Vec3b>(row,col)[0]+image_blured->at<Vec3b>(row,col)[0];
-                image_mat->at<Vec3b>(row,col)[1]=image_mat->at<Vec3b>(row,col)[1]+image_blured->at<Vec3b>(row,col)[1];
-                image_mat->at<Vec3b>(row,col)[2]=image_mat->at<Vec3b>(row,col)[2]+image_blured->at<Vec3b>(row,col)[2];
-            }
-        }
-     }
+    return NumberOfFrames;
 }
 
-int VideoReader::getFrameHeight(void)
+int VideoReader::getBlurredFrameHeight(void) const
 {
-    return(this->frameHeight);
+    return blurred_frameHeight;
 }
 
-int VideoReader::getFrameWidth(void)
+int VideoReader::getBlurredFrameWidth(void) const
 {
-    return(this->frameWidth);
+    return blurred_frameWidth;
 }
 
-int VideoReader::getNumberOfFrames(void)
+vector<unique_ptr<Mat>>& VideoReader::getFrames(void)
 {
-    return(this->NumberOfFrames);
+    return frames;
 }
 
-Mat** VideoReader::getFrames(void)
+vector<unique_ptr<Mat>>& VideoReader::getBluredFrames(void)
 {
-    return(this->frames);
-}
-
-Mat** VideoReader::getBluredFrames(void)
-{
-    return(this->blured_frames);
+    return blured_frames;
 }

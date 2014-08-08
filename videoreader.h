@@ -2,34 +2,30 @@
 #define VIDEOREADER_H
 
 #include "Conf.h"
-using namespace cv;
 using namespace std;
 
 class VideoReader
 {
 private:
-    Mat* frames[FRAMES_MAX];
-    Mat* blured_frames[FRAMES_MAX];
+    vector<unique_ptr<Mat>> frames;
+    vector<unique_ptr<Mat>> blured_frames;
     int NumberOfFrames;
     int frameHeight;
     int frameWidth;
+    int blurred_frameHeight;
+    int blurred_frameWidth;
 public:
 
-    int ReadFrames(const char* videofilename_in, int pyramid_level);
-    int PyrUpBlured(int pyramid_level);
-    int PrintFrames(void);
-    int AddPulseToFrames(void);
+    int ReadFrames(const string& videofilename_in, int pyramid_level, int framesLimit);
 
-    int getFrameHeight(void);
-    int getFrameWidth(void);
-    int getNumberOfFrames(void);
-    Mat** getFrames(void);
-    Mat** getBluredFrames(void);
+    int getFrameHeight(void) const;
+    int getFrameWidth(void) const;
+    int getBlurredFrameHeight(void) const;
+    int getNumberOfFrames(void) const;
+    int getBlurredFrameWidth(void) const;
 
-
-
-    VideoReader();
-    ~VideoReader();
+    vector<unique_ptr<Mat>>& getFrames(void);
+    vector<unique_ptr<Mat>>& getBluredFrames(void);
 };
 
 #endif // VIDEOREADER_H

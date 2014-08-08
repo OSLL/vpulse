@@ -2,7 +2,13 @@
 #define PROCESSOR_H
 
 #include "Conf.h"
-using namespace cv;
+
+using transRgbYiqMatr = double[9];
+
+const transRgbYiqMatr rgb2yiqCoef {0.2989, 0.587, 0.144, 0.5959, -0.2744, -0.3216, 0.2115, -0.5229, 0.3114};
+const transRgbYiqMatr yiq2rgbCoef {1.000, 0.956, 0.621, 1.000, -0.272, -0.647, 1.000, -1.106, 1.703};
+
+const int channels {3};
 
 class processor
 {
@@ -11,37 +17,31 @@ private:
     int frameHeight;
     int frameWidth;
     int samplingRate;
-    int debugflag;
 
-    double* AllFrames;       //data
+    vector<double> AllFrames;       //data
 
-    void FramesToVector(Mat** src, double* dst, int frWidth, int frHeight, int NofFrames);
-
-    void rgb2yiq(double* srcDst, int frWidth, int frHeight, int NofFrames);
-    void yiq2rgb(double* srcDst, int frWidth, int frHeight, int NofFrames);
-    void normalize(double* src, long len, double factor);
-    int* createFreqMask(double fLow, double fHight);
-    void copyVector(double* src, double* dst, long len);
-    void copyFFTW_cpx(fftw_complex* src, fftw_complex* dst, long len);
-    void applyMask(fftw_complex*src, fftw_complex* dst, int* mask, long len);
-    void sumVector(double* src1, double *src2, double* dst, long len);
-    void rgbBoarder(double* src, long len);
-    void YIQ2RGBnormalizeColorChannels(double* srcDst, int frWidth, int frHeight, int NofFrames);
+    int calc_pixel_coor(int k, int row, int col, int channel) const;
 
 public:
-    processor(int NumberOfFrames_in, int frameHeight_in, int frameWidth_in, int sRate_in, Mat** Frames);
-    ~processor();
-    void work(double fLow, double fHight, double ampFactor);
-    void VectorToFrames(double* src, Mat** dst, int frWidth, int frHeight, int NofFrames);
-    int AddPulseToFrames(Mat** frames/*, Mat** pulse*/, double* result, int NofFrames);
-    double* getAllFrames(void);
-    int getFrH(void);
-    int getFrW(void);
-    int getNFr(void);
-    void NearInterpolation(double* src, double* dst, int oldwidth, int oldheight, int newwidth, int newheight, int nofFr, int frameInd);
-    //tmp==================
-    void PrintData(double* src, long len, const char* filename);
-    //=====================
+    vector<int> createFreqMask(double fLow, double fHigh) const;
+    processor(int NumberOfFrames_in, int sRate_in, vector<std::unique_ptr<Mat> > &Frames);
+    void amplify(double fLow, double fHight, double ampFactor);
+    vector<double> receive_pixel_values(int row, int col, int channel) const;
+    void insert_pixel_values(const vector<double>& values, int row, int col, int channel);
+    int getFrH() const;
+    int getFrW() const;
+    int getNFr() const;
+    int AddPulseToFrames(vector<unique_ptr<Mat>>& frames, int NofFrames) const;
+    double at(int k, int row, int col, int channel) const;
 };
+
+void YIQ2RGBnormalizeColorChannels(vector<double>& srcDst, int frWidth, int frHeight, int NofFrames);
+void NearInterpolation(const vector<double>& src, vector<double>& dst, int oldwidth, int oldheight, int newwidth, int newheight, int frameInd);
+void FramesToVector(vector<unique_ptr<Mat> > &src, vector<double>& dst);
+void FramesToVector(unique_ptr<Mat>& src, vector<double>& dst);
+void VectorToFrames(const vector<double> &src, vector<unique_ptr<Mat>>& dst, int frWidth, int frHeight);
+void VectorToFrames(const vector<double>& src, unique_ptr<Mat>& dst, int frWidth, int frHeight);
+complex_vector applyMask(const complex_vector& src, const vector<int>& mask);
+
 
 #endif // PROCESSOR_H
