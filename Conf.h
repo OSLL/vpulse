@@ -1,8 +1,6 @@
 #ifndef CONF_H
 #define CONF_H
 
-#include "Mat.h"
-
 extern "C"
 {
 
@@ -22,6 +20,7 @@ extern "C"
 #include <memory>
 #include <algorithm>
 #include <iostream>
+#include <vector>
 
 using complex_number = std::complex<double>;
 using complex_vector = std::vector<std::complex<double>>;

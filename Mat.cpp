@@ -1,70 +1,81 @@
 #include "Mat.h"
 
-
-Mat::Mat(int rows_in, int cols_in, int channels_in):
-    rows(rows_in),
-    cols(cols_in),
-    channels(channels_in),
-    data(rows_in*cols_in*channels_in)
+Mat::Mat(unsigned int rows_in, unsigned int cols_in):
+    m_rows(rows_in),
+    m_cols(cols_in),
+    m_data(rows_in*cols_in*s_channels)
 {
 
 }
 
 Mat::Mat(const Mat& a):
-    rows(a.rows),
-    cols(a.cols),
-    channels(a.channels),
-    data(a.rows*a.cols*a.channels)
+    m_rows(a.m_rows),
+    m_cols(a.m_cols),
+    m_data(a.m_rows*a.m_cols*s_channels)
 {
-    this->data = a.data;
+    this->m_data = a.m_data;
 }
 
 Mat::Mat(Mat&& a):
-    rows(a.rows),
-    cols(a.cols),
-    channels(a.channels),
-    data(a.rows*a.cols*a.channels)
+    m_rows(a.m_rows),
+    m_cols(a.m_cols),
+    m_data(a.m_rows*a.m_cols*s_channels)
 {
-    this->data = std::move(a.data);
+    m_data = std::move(a.m_data);
 }
 
 
 Mat& Mat::operator=(const Mat& a)
 {
-    rows = a.rows;
-    cols = a.cols;
-    channels = a.channels;
-    this->data = a.data;
+    m_rows = a.m_rows;
+    m_cols = a.m_cols;
+    m_data = a.m_data;
     return *this;
 }
 
-double& Mat::at(int row, int col, int channel)
+double& Mat::at(unsigned int row, unsigned int col, unsigned int channel)
 {
-    //cout << (channels*(cols*row+col)+channel) << endl;
-    return data[channels*(cols*row+col)+channel];
+    return m_data[s_channels*(m_cols*row+col)+channel];
+}
+
+double Mat::at(unsigned int row, unsigned int col, unsigned int channel) const
+{
+    return m_data[s_channels*(m_cols*row+col)+channel];
 }
 
 
-double* Mat::getVec(int row, int col)
+Vec3d Mat::getVec(unsigned int row, unsigned int col)
 {
-    return &data[channels*(cols*row+col)];
+    Vec3d res;
+    for(int i = 0; i < 2; i++)
+        res[i] = m_data[s_channels*(m_cols*row+col) + i];
+    return res;
 }
 
 
-int Mat::get_rows()
+unsigned int Mat::getRows() const
 {
-    return rows;
+    return m_rows;
 }
 
 
-int Mat::get_cols()
+unsigned int Mat::getCols() const
 {
-    return cols;
+    return m_cols;
 }
 
-
-int Mat::get_channels()
+unsigned int Mat::getChannels() const
 {
-    return channels;
+    return s_channels;
+}
+
+std::vector<double>& Mat::data()
+{
+    return m_data;
+}
+
+size_t Mat::size() const
+{
+    return m_data.size();
 }
 

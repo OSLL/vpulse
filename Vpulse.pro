@@ -5,7 +5,7 @@
 #-------------------------------------------------
 
 TARGET = Vpulse
-TEMPLATE = app
+TEMPLATE = lib
 
 QT += core
 
@@ -13,15 +13,19 @@ QT -= gui
 
 DEFINES += QT_NODLL
 
-SOURCES += main.cpp\
-    videoreader.cpp \
-    processor.cpp \
-    Mat.cpp
+SOURCES +=\
+    Mat.cpp \
+    Processor.cpp \
+    Videoreader.cpp \
+    Calculator.cpp \
+    main.cpp
 
-HEADERS  += videoreader.h \
+HEADERS  += \
     Conf.h \
-    processor.h \
-    Mat.h
+    Mat.h \
+    Videoreader.h \
+    Processor.h \
+    Calculator.h
 
 INCLUDEPATH += $$PWD/fftw
 

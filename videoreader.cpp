@@ -1,5 +1,10 @@
-#include "videoreader.h"
+#include "Videoreader.h"
 
+namespace
+{
+/*
+    Function applies Gaussian mask 5x5 to the image and halfes it in size
+*/
 void pyrDown(Mat& img)
 {
     const int mask[5][5] =
@@ -8,10 +13,10 @@ void pyrDown(Mat& img)
      {6, 24, 36, 24, 6},
      {4, 16, 24, 16, 4},
      {1, 4, 6, 4, 1}};
-     Mat tmp(img.get_rows() - 4,img.get_cols() - 4,img.get_channels());
-     for(int i = 2; i < img.get_rows() - 2; i++)
-        for(int j = 2; j < img.get_cols() - 2; j++)
-            for(int ch = 0; ch < img.get_channels(); ch++)
+     Mat tmp(img.getRows() - 4, img.getCols() - 4);
+     for(unsigned int i = 2; i < img.getRows() - 2; i++)
+        for(unsigned int j = 2; j < img.getCols() - 2; j++)
+            for(unsigned int ch = 0; ch < img.getChannels(); ch++)
             {
                 double sum = 0;
                 for(int di = -2; di <= 2; di++)
@@ -20,29 +25,30 @@ void pyrDown(Mat& img)
                 sum /= (double)256.0;
                 tmp.at(i-2,j-2,ch) = sum;
             }
-    Mat res((tmp.get_rows()+1)/2,(tmp.get_cols()+1)/2,tmp.get_channels());
+    Mat res((tmp.getRows()+1)/2, (tmp.getCols()+1)/2);
 
-    for(int i = 0; i < tmp.get_rows(); i += 2)
-        for(int j = 0; j < tmp.get_cols(); j += 2)
-            for(int ch = 0; ch < tmp.get_channels(); ch++)
+    for(unsigned int i = 0; i < tmp.getRows(); i += 2)
+        for(unsigned int j = 0; j < tmp.getCols(); j += 2)
+            for(unsigned int ch = 0; ch < tmp.getChannels(); ch++)
                 res.at(i/2,j/2,ch) = tmp.at(i,j,ch);
     img = move(res);
+}
 }
 
 int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, int framesLimit)
 {
-    AVFormatContext *pFormatCtx=NULL;
+    AVFormatContext *pFormatCtx = nullptr;
 
     cout << videofilename_in << endl;
 
-    if(avformat_open_input(&pFormatCtx, videofilename_in.c_str(), NULL, NULL)!=0)
+    if(avformat_open_input(&pFormatCtx, videofilename_in.c_str(), nullptr, nullptr)!=0)
     {
         printf("Couldn't open video file  \n");
         return -1;
     }
 
      // Retrieve stream information
-    if(avformat_find_stream_info(pFormatCtx,NULL)<0)
+    if(avformat_find_stream_info(pFormatCtx, nullptr)<0)
     {
         printf("Couldn't find stream information\n");
         return -1;
@@ -89,7 +95,7 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
 
      // Allocate an AVFrame structure
     AVFrame* pFrameRGB = av_frame_alloc();
-    if(pFrameRGB==NULL)
+    if(pFrameRGB == nullptr)
         return -1;
 
 
@@ -126,14 +132,14 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
                 if(i<=framesLimit)
                 {
                     i++;
-                    auto image_mat = unique_ptr<Mat>(new Mat(pCodecCtx->height,pCodecCtx->width,3));
+                    auto image_mat = unique_ptr<Mat>(new Mat(pCodecCtx->height,pCodecCtx->width));
 
                     for(int row=0; row<pCodecCtx->height;row++)
                         for(int col=0; col<pCodecCtx->width; col++)
                         {
-                            image_mat->getVec(row,col)[0]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+2];
-                            image_mat->getVec(row,col)[1]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+1];
-                            image_mat->getVec(row,col)[2]=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+0];
+                            image_mat->at(row,col,0)=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+2];
+                            image_mat->at(row,col,1)=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+1];
+                            image_mat->at(row,col,2)=pFrameRGB->data[0][row*pFrameRGB->linesize[0]+col*3+0];
                         }
 
                     unique_ptr<Mat> image_blured(new Mat(*image_mat));
@@ -152,10 +158,10 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
 
 
     NumberOfFrames = i;
-    blurred_frameHeight = blured_frames[0]->get_rows();
-    blurred_frameWidth = blured_frames[0]->get_cols();
-    frameHeight = frames[0]->get_rows();
-    frameWidth = frames[0]->get_cols();
+    blurred_frameHeight = blured_frames[0]->getRows();
+    blurred_frameWidth = blured_frames[0]->getCols();
+    frameHeight = frames[0]->getRows();
+    frameWidth = frames[0]->getCols();
 
     av_free(buffer);
     av_free(pFrameRGB);
@@ -168,27 +174,27 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
     return 0;
 }
 
-int VideoReader::getFrameHeight(void) const
+unsigned int VideoReader::getFrameHeight(void) const
 {
     return frameHeight;
 }
 
-int VideoReader::getFrameWidth(void) const
+unsigned int VideoReader::getFrameWidth(void) const
 {
     return frameWidth;
 }
 
-int VideoReader::getNumberOfFrames(void) const
+unsigned int VideoReader::getNumberOfFrames(void) const
 {
     return NumberOfFrames;
 }
 
-int VideoReader::getBlurredFrameHeight(void) const
+unsigned int VideoReader::getBlurredFrameHeight(void) const
 {
     return blurred_frameHeight;
 }
 
-int VideoReader::getBlurredFrameWidth(void) const
+unsigned int VideoReader::getBlurredFrameWidth(void) const
 {
     return blurred_frameWidth;
 }

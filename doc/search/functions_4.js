@@ -1,0 +1,19 @@
+var searchData=
+[
+  ['gen_5fsin_5fvector',['gen_sin_vector',['../namespace_calculator.html#ab038f5c888958cd31cbab083bc7c7ac6',1,'Calculator']]],
+  ['gen_5ftest_5fimage',['gen_test_image',['../namespace_calculator.html#a73814fb00a47c9c953a04260bf4c9fad',1,'Calculator']]],
+  ['getbluredframes',['getBluredFrames',['../class_video_reader.html#a574b27ae5fd2b0860a2be402ef916d58',1,'VideoReader']]],
+  ['getblurredframeheight',['getBlurredFrameHeight',['../class_video_reader.html#a2af5b8c6d85acfbed8cfe50cf004f8e4',1,'VideoReader']]],
+  ['getblurredframewidth',['getBlurredFrameWidth',['../class_video_reader.html#a5cb243aee89cc93f7d13752ca2274f40',1,'VideoReader']]],
+  ['getchannels',['getChannels',['../class_mat.html#a426e66dddb288013e6d7670cb8f3ef9c',1,'Mat']]],
+  ['getcols',['getCols',['../class_mat.html#a3870b6b3c26a7e8a288c7da57e0780a2',1,'Mat']]],
+  ['getframeheight',['getFrameHeight',['../class_video_reader.html#a11daedecc0f6fcdddf2094721099505b',1,'VideoReader']]],
+  ['getframes',['getFrames',['../class_video_reader.html#a20598ac79b62b9cf4676e673bdff93de',1,'VideoReader']]],
+  ['getframewidth',['getFrameWidth',['../class_video_reader.html#ae37c105d4ee0efef469c8c29bd4da4d6',1,'VideoReader']]],
+  ['getfrh',['getFrH',['../class_processor.html#a3fa03fe52dce88d43fdc53c9f4058b59',1,'Processor']]],
+  ['getfrw',['getFrW',['../class_processor.html#a9020755b4c8cfeef9ed10eba98482eb0',1,'Processor']]],
+  ['getnfr',['getNFr',['../class_processor.html#a349ebb16741383658e4484dec9d54664',1,'Processor']]],
+  ['getnumberofframes',['getNumberOfFrames',['../class_video_reader.html#a48b87320e16b7f41a1d2e22907a9b33a',1,'VideoReader']]],
+  ['getrows',['getRows',['../class_mat.html#aa9541b91c10eb4fd14f0502f44087a41',1,'Mat']]],
+  ['getvec',['getVec',['../class_mat.html#a705b73645f705c54b1f991e700b4d79f',1,'Mat']]]
+];
