@@ -9,7 +9,7 @@ using namespace Calculator;
 
 int main()
 {
-    const string filename_in {"face.mp4"};
+    const string filename_in {"makar12.mp4"};
     av_register_all();
     const unsigned int frames_max {1000};
     VideoReader Curr_video;
@@ -23,7 +23,7 @@ int main()
     const double fr2 {78.0/60.0};
     const double ampFactor {70.0};
     const unsigned int avg_parameter {3};
-    const double area_radius {3.0};
+    const double area_radius {3.0};    
 
     vector<Point> points{find_points_of_interest(Curr_video)};
 

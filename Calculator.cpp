@@ -26,7 +26,7 @@ harmonic_stat calc_amplitude_and_period(vector<double> values)
 
 double calc_average_significant_period(vector<double> periods, unsigned int k)
 {
-    std::sort(periods.begin(),periods.end());
+    sort(periods.begin(),periods.end());
     k--;
     int min_diff_pos = 0;
     for(int i = 0; i < (int)(periods.size()- k); i++)
@@ -153,7 +153,7 @@ vector<Point> standart_points(unsigned int width, unsigned int height)
     for(int i = 1; i <= 3; i++)
         for(int j = 1; j <= 3; j++)
         {
-            res.push_back(Point(width*i/4,height*j/4));
+            res.push_back(Point(width * i / 4, height * j / 4));
         }
     return res;
 }
