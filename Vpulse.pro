@@ -5,7 +5,7 @@
 #-------------------------------------------------
 
 TARGET = Vpulse
-TEMPLATE = lib
+TEMPLATE = app
 
 QT += core
 
@@ -27,14 +27,11 @@ HEADERS  += \
     Processor.h \
     Calculator.h
 
-INCLUDEPATH += $$PWD/fftw
+message($$(FFEMPG_PATH))
+message($$(FFTW_PATH))
 
-LIBS += -L$$PWD/fftw/ -llibfftw3-3
+INCLUDEPATH += $$(FFTW_PATH)
+INCLUDEPATH += $$(FFMPEG_PATH)/include
 
-DEPENDPATH += $$PWD/fftw
-PRE_TARGETDEPS += $$PWD/fftw/libfftw3-3.lib
-
-LIBS += -L$$PWD/ffmpeg/lib/ -lavcodec-55 -lavformat-55 -lswscale-2 -lavutil-52
-INCLUDEPATH += $$PWD/ffmpeg/include
-DEPENDPATH += $$PWD/ffmpeg/include
-
+LIBS += -L$$(FFTW_PATH) -llibfftw3-3
+LIBS += -L$$(FFMPEG_PATH)/lib/ -lavcodec-55 -lavformat-55 -lswscale-2 -lavutil-52
