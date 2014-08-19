@@ -1,7 +1,10 @@
 TARGET = Vpulse
 
 TEMPLATE = lib
+
 CONFIG += staticlib
+
+CONFIG += c++11
 
 DEFINES += QT_NODLL
 
