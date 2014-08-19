@@ -1,9 +1,10 @@
-#include<processor.h>
+#include <processor.h>
+#include <functional>
+#include <cmath>
 
 using namespace std;
 
-#include<functional>
-#include<cmath>
+
 
 namespace ProcessorUtilities
 {

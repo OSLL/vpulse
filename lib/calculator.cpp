@@ -1,6 +1,6 @@
-#include<numeric>
-#include<algorithm>
-#include<calculator.h>
+#include <numeric>
+#include <algorithm>
+#include <calculator.h>
 
 using namespace std;
 

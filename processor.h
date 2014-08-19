@@ -1,8 +1,8 @@
 #ifndef PROCESSOR_H
 #define PROCESSOR_H
 
-#include "Conf.h"
-#include "Mat.h"
+#include <conf.h>
+#include <mat.h>
 
 using transRgbYiqMatr = double[9];
 using std::vector;
