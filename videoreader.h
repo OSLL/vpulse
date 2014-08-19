@@ -1,8 +1,8 @@
 #ifndef VIDEOREADER_H
 #define VIDEOREADER_H
 
-#include "Conf.h"
-#include "Mat.h"
+#include <conf.h>
+#include <mat.h>
 
 using namespace std;
 

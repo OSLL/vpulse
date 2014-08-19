@@ -3,11 +3,11 @@
 
 #endif // CALCULATOR_H
 
-#include<utility>
-#include "Conf.h"
-#include "Videoreader.h"
-#include "Processor.h"
-#include "Mat.h"
+#include <utility>
+#include <conf.h>
+#include <videoreader.h>
+#include <processor.h>
+#include <mat.h>
 
 using harmonic_stat = pair<double,double>;
 using Point = pair<int,int>;

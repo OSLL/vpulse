@@ -2,7 +2,7 @@
 #define MAT_H
 
 #include<array>
-#include "Conf.h"
+#include <conf.h>
 
 using Vec3d = std::array<double, 3>;
 
