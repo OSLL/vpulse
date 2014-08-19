@@ -1,4 +1,4 @@
-#include <Mat.h>
+#include <mat.h>
 
 Mat::Mat(unsigned int rows_in, unsigned int cols_in):
     m_rows(rows_in),

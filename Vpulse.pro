@@ -8,7 +8,7 @@ exec.file = exec/exec.pro
 
 CONFIG += ordered
 
-HEADERS += Calculator.h\
-    Mat.h \
-    Processor.h \
-    Videoreader.h \
+HEADERS += calculator.h\
+    mat.h \
+    processor.h \
+    videoreader.h \
