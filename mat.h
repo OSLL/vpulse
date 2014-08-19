@@ -1,7 +1,7 @@
 #ifndef MAT_H
 #define MAT_H
 
-#include<array>
+#include <array>
 #include <conf.h>
 
 using Vec3d = std::array<double, 3>;
@@ -14,14 +14,13 @@ const unsigned int s_channels = 3;
 class Mat
 {
 private:
-
-    /*! Vector, storing the actual data */
-    std::vector<double> m_data;
     /*! Rows number */
     unsigned int m_rows;
     /*! Cols number */
     unsigned int m_cols;
     /*! Channels number */
+    /*! Vector, storing the actual data */
+    std::vector<double> m_data;
 
 public:
 

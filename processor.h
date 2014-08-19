@@ -28,7 +28,6 @@ private:
     unsigned int m_frameWidth;
     /*! Sampling rate of the video */
     unsigned int m_samplingRate;
-
     /*! Vector, storing the actual data */
     vector<double> m_AllFrames;
 
