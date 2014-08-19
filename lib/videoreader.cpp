@@ -14,9 +14,9 @@ void pyrDown(Mat& img)
      {4, 16, 24, 16, 4},
      {1, 4, 6, 4, 1}};
      Mat tmp(img.getRows() - 4, img.getCols() - 4);
-     for(unsigned int i = 2; i < img.getRows() - 2; i++)
-        for(unsigned int j = 2; j < img.getCols() - 2; j++)
-            for(unsigned int ch = 0; ch < img.getChannels(); ch++)
+     for(size_t i = 2; i < img.getRows() - 2; i++)
+        for(size_t j = 2; j < img.getCols() - 2; j++)
+            for(size_t ch = 0; ch < img.getChannels(); ch++)
             {
                 double sum = 0;
                 for(int di = -2; di <= 2; di++)
@@ -27,9 +27,9 @@ void pyrDown(Mat& img)
             }
     Mat res((tmp.getRows()+1)/2, (tmp.getCols()+1)/2);
 
-    for(unsigned int i = 0; i < tmp.getRows(); i += 2)
-        for(unsigned int j = 0; j < tmp.getCols(); j += 2)
-            for(unsigned int ch = 0; ch < tmp.getChannels(); ch++)
+    for(size_t i = 0; i < tmp.getRows(); i += 2)
+        for(size_t j = 0; j < tmp.getCols(); j += 2)
+            for(size_t ch = 0; ch < tmp.getChannels(); ch++)
                 res.at(i/2,j/2,ch) = tmp.at(i,j,ch);
     img = move(res);
 }
@@ -65,7 +65,7 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
     for(unsigned int i = 0; i < pFormatCtx->nb_streams; i++)
         if(pFormatCtx->streams[i]->codec->codec_type==AVMEDIA_TYPE_VIDEO)
         {
-            videoStream=i;
+            videoStream = i;
             break;
         }
 
@@ -81,7 +81,7 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
 
      // Find the decoder for the video stream
     pCodec=avcodec_find_decoder(pCodecCtx->codec_id);
-    if(pCodec==NULL)
+    if(pCodec==nullptr)
     {
       cout << "Unsupported codec!\n" << endl;
       return -1; // Codec not found
@@ -174,27 +174,27 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
     return 0;
 }
 
-unsigned int VideoReader::getFrameHeight(void) const
+size_t VideoReader::getFrameHeight(void) const
 {
     return frameHeight;
 }
 
-unsigned int VideoReader::getFrameWidth(void) const
+size_t VideoReader::getFrameWidth(void) const
 {
     return frameWidth;
 }
 
-unsigned int VideoReader::getNumberOfFrames(void) const
+size_t VideoReader::getNumberOfFrames(void) const
 {
     return NumberOfFrames;
 }
 
-unsigned int VideoReader::getBlurredFrameHeight(void) const
+size_t VideoReader::getBlurredFrameHeight(void) const
 {
     return blurred_frameHeight;
 }
 
-unsigned int VideoReader::getBlurredFrameWidth(void) const
+size_t VideoReader::getBlurredFrameWidth(void) const
 {
     return blurred_frameWidth;
 }

@@ -24,7 +24,7 @@ harmonic_stat calc_amplitude_and_period(vector<double> values)
     return make_pair((double)abs(out_fft[max])/out_fft.size(),(double)out_fft.size()/max);
 }
 
-double calc_average_significant_period(vector<double> periods, unsigned int k)
+double calc_average_significant_period(vector<double> periods, size_t k)
 {
     sort(periods.begin(),periods.end());
     k--;
@@ -39,28 +39,28 @@ double calc_average_significant_period(vector<double> periods, unsigned int k)
     return acc/k;
 }
 
-vector<double> gen_sin_vector(unsigned int length, double ampl, double period)
+vector<double> gen_sin_vector(size_t length, double ampl, double period)
 {
     auto f = [ampl, period](int t){return ampl*sin((double)t*2*M_PI/period)+ampl;};
     vector<double> res(length);
-    for(unsigned int i = 0; i < length; i++)
-        res[i] = f(i);
+    for(size_t i = 0; i < length; i++)
+        res[i] = f(static_cast<int>(i));
     return res;
 }
 
 
-vector<unique_ptr<Mat>> gen_test_image(unsigned int length, unsigned int width, unsigned int height, double ampl, double period)
+vector<unique_ptr<Mat>> gen_test_image(size_t length, size_t width, size_t height, double ampl, double period)
 {
     vector<unique_ptr<Mat>> res(length);
 
-    for(unsigned int i = 0; i < length; i++)
+    for(size_t i = 0; i < length; i++)
         res[i] = unique_ptr<Mat>(new Mat(height,width));
 
-    for(unsigned int i = 0; i < height; i++)
-        for(unsigned int j = 0; j < width; j++)
+    for(size_t i = 0; i < height; i++)
+        for(size_t j = 0; j < width; j++)
         {
             vector<double> values {gen_sin_vector(length,ampl,period)};
-            for(unsigned int k = 0; k < length; k++)
+            for(size_t k = 0; k < length; k++)
             {
                 auto vec = res[k]->getVec(i,j);
                 vec[0] = values[k];
@@ -73,7 +73,7 @@ vector<unique_ptr<Mat>> gen_test_image(unsigned int length, unsigned int width, 
 }
 
 
-vector<double> receive_pixel_values(vector<unique_ptr<Mat>>& src, unsigned int row, unsigned int col, unsigned int channel)
+vector<double> receive_pixel_values(vector<unique_ptr<Mat>>& src, size_t row, size_t col, size_t channel)
 {
     vector<double> res(src.size());
 
@@ -84,21 +84,25 @@ vector<double> receive_pixel_values(vector<unique_ptr<Mat>>& src, unsigned int r
 }
 
 
-bool is_in_circle(double x, double y, double area_size)
+inline bool is_in_circle(size_t x, size_t y, double area_size)
 {
-    return ((x*x+y*y) <= area_size*area_size);
+    return ((double)(x*x+y*y) <= area_size*area_size);
 }
 
 
-vector<double> receive_averaged_pixel_values(vector<unique_ptr<Mat>>& src, unsigned int row, unsigned int col, double area_size)
+vector<double> receive_averaged_pixel_values(vector<unique_ptr<Mat>>& src, size_t row, size_t col, double area_size)
 {
     int count = 0;
     vector<double> res(src.size());
-    for(auto i = row - static_cast<unsigned int>(area_size); i < row + static_cast<unsigned int>(area_size); i++)
-        for(auto j = col - static_cast<unsigned int>(area_size); j < col + static_cast<unsigned int>(area_size); j++)
+    auto istart = (row > static_cast<size_t>(area_size)) ? (row - static_cast<size_t>(area_size)) : 0;
+    auto iend = row + static_cast<size_t>(area_size);
+    auto jstart = (col > static_cast<size_t>(area_size)) ? (col - static_cast<size_t>(area_size)) : 0;
+    auto jend = col + static_cast<size_t>(area_size);
+    for(auto i = istart; i < iend; i++)
+        for(auto j = jstart; j < jend; j++)
         {
             if (i >= 0 && j >= 0)
-                if (is_in_circle(j-col,i-row,area_size))
+                if (is_in_circle(j - col, i - row, area_size))
                 {
                     vector<double> values_array_r{receive_pixel_values(src,row,col,0)};
                     vector<double> values_array_g{receive_pixel_values(src,row,col,1)};
@@ -118,7 +122,7 @@ vector<double> receive_averaged_pixel_values(vector<unique_ptr<Mat>>& src, unsig
 
 
 
-double calculate_pulse(VideoReader& video, vector<Point>& points, double fr1, double fr2, double ampFactor, unsigned int avg_parameter, double area_radius)
+double calculate_pulse(VideoReader& video, vector<Point>& points, double fr1, double fr2, double ampFactor, size_t avg_parameter, double area_radius)
 {
     const int sRate {30};
     Processor pr1(sRate, video.getBluredFrames());
@@ -147,7 +151,7 @@ double calculate_pulse(VideoReader& video, vector<Point>& points, double fr1, do
 }
 
 
-vector<Point> standart_points(unsigned int width, unsigned int height)
+vector<Point> standart_points(size_t width, size_t height)
 {
     vector<Point> res;
     for(int i = 1; i <= 3; i++)
@@ -161,7 +165,7 @@ vector<Point> standart_points(unsigned int width, unsigned int height)
 
 vector<Point> find_points_of_interest(VideoReader& video)
 {
-    const unsigned int min_points {3};
+    const size_t min_points {3};
     vector<Point> res;
     //TODO
     if (res.size() < min_points)
