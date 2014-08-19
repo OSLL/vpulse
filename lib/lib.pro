@@ -6,10 +6,10 @@ CONFIG += staticlib
 DEFINES += QT_NODLL
 
 SOURCES +=\
-    Mat.cpp \
-    Processor.cpp \
-    Videoreader.cpp \
-    Calculator.cpp \
+    mat.cpp \
+    processor.cpp \
+    videoreader.cpp \
+    calculator.cpp \
 
 INCLUDEPATH += $$(FFTW_PATH)
 INCLUDEPATH += $$(FFMPEG_INCLUDE_PATH)
