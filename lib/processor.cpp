@@ -33,7 +33,7 @@ void normalize(vector<double>& src, double factor)
 }
 
 
-complex_vector applyMask(const complex_vector& src, const vector<int>& mask)
+complex_vector applyMask(const complex_vector& src, const vector<size_t>& mask)
 {
     complex_vector dst(src.size(), complex_number(0,0));
 
@@ -44,11 +44,11 @@ complex_vector applyMask(const complex_vector& src, const vector<int>& mask)
     return dst;
 }
 
-void rgb2yiq(vector<double>& srcDst, int frWidth, int frHeight, int NofFrames, bool rev)
+void rgb2yiq(vector<double>& srcDst, size_t frWidth, size_t frHeight, size_t NofFrames, bool rev)
 {
-    int pixels = NofFrames*frHeight*frWidth*channels;
+    size_t pixels = NofFrames*frHeight*frWidth*channels;
     const double* Coefs = rev ? &yiq2rgbCoef[0] : &rgb2yiqCoef[0];
-    for(int i = 0; i < pixels; i+=3)
+    for(size_t i = 0; i < pixels; i+=3)
     {
        double tmp[3] {srcDst[i], srcDst[i + 1], srcDst[i + 2]};  //ugly code, could be done in one line using linear algebra
        srcDst[i + 0] = tmp[0]*Coefs[0] + tmp[1]*Coefs[1] + tmp[2]*Coefs[2];
@@ -57,35 +57,35 @@ void rgb2yiq(vector<double>& srcDst, int frWidth, int frHeight, int NofFrames, b
     }
 }
 
-void YIQ2RGBnormalizeColorChannels(vector<double>& srcDst, int frWidth, int frHeight, int NofFrames)
+void YIQ2RGBnormalizeColorChannels(vector<double>& srcDst, size_t frWidth, size_t frHeight, size_t NofFrames)
 {
     rgb2yiq(srcDst,frWidth,frHeight,NofFrames,true);
 
-    int pixels = NofFrames*frHeight*frWidth*channels;
-    for(int i = 0; i < pixels; i+=3)
+    size_t pixels = NofFrames*frHeight*frWidth*channels;
+    for(size_t i = 0; i < pixels; i+=3)
     {
         double normfactor {max({srcDst[i + 0], srcDst[i + 1], srcDst[i + 2], 1.0})};
 
        if (normfactor > 1.0)
        {
-            for(int j = 0; j < channels; j++)
+            for(size_t j = 0; j < channels; j++)
                 srcDst[i + j]/=normfactor;
        }
     }
 }
 
-void NearInterpolation(const vector<double>& src, vector<double>& dst, int oldwidth, int oldheight, int newwidth, int newheight, int frameInd)
+void NearInterpolation(const vector<double>& src, vector<double>& dst, size_t oldwidth, size_t oldheight, size_t newwidth, size_t newheight, size_t frameInd)
 {
-    const int scaleRateW = newwidth * oldwidth;
-    const int scaleRateH = newheight * oldheight;
+    const double scaleRateW = (double)newwidth / oldwidth;
+    const double scaleRateH = (double)newheight / oldheight;
     for(int cx = 0; cx < newwidth; cx++)
         for(int cy = 0; cy < newheight; cy++)
         {
-            int oldcx = static_cast<int>(floor((double)cx / scaleRateW));
-            int oldcy = static_cast<int>(floor((double)cy / scaleRateH));
-            int nearest_match {channels*(oldwidth*oldheight*frameInd+oldwidth*oldcy+oldcx)};
-            int pixel_index {channels * (cy * newwidth + cx)};
-            for(int i = 0; i < channels; i++)
+            size_t oldcx = static_cast<size_t>(floor((double)cx / scaleRateW));
+            size_t oldcy = static_cast<size_t>(floor((double)cy / scaleRateH));
+            size_t nearest_match {channels*(oldwidth*oldheight*frameInd+oldwidth*oldcy+oldcx)};
+            size_t pixel_index {channels * (cy * newwidth + cx)};
+            for(size_t i = 0; i < channels; i++)
                 dst[pixel_index + i] = src[nearest_match + i];
         }
 }
@@ -94,7 +94,7 @@ void NearInterpolation(const vector<double>& src, vector<double>& dst, int oldwi
 
 using namespace ProcessorUtilities;
 
-Processor::Processor(unsigned int sRate_in, const vector<unique_ptr<Mat> > &Frames):
+Processor::Processor(size_t sRate_in, const vector<unique_ptr<Mat> > &Frames):
     m_numberOfFrames(Frames.size()),
     m_frameHeight(Frames[0]->getRows()),
     m_frameWidth(Frames[0]->getCols()),
@@ -104,11 +104,11 @@ Processor::Processor(unsigned int sRate_in, const vector<unique_ptr<Mat> > &Fram
     FramesToVector(Frames, m_AllFrames);
 }
 
-vector<int> Processor::createFreqMask(double fLow, double fHigh) const
+vector<size_t> Processor::createFreqMask(double fLow, double fHigh) const
 {
-    vector<int> indices;
+    vector<size_t> indices;
 
-    for(unsigned int i = 0; i < m_numberOfFrames; i++)
+    for(size_t i = 0; i < m_numberOfFrames; i++)
     {
         auto mask = (double)i/m_numberOfFrames*m_samplingRate;
         if (mask >= fLow && mask <= fHigh)
@@ -124,7 +124,7 @@ void Processor::amplify(double fLow, double fHight, double ampFactor)
 
     rgb2yiq(m_AllFrames, m_frameWidth, m_frameHeight, m_numberOfFrames, false);
 
-    vector<int> mask = createFreqMask(fLow,fHight);
+    auto mask = createFreqMask(fLow,fHight);
 
     complex_vector out_fft(m_numberOfFrames);
     vector<double> in_fft(m_numberOfFrames);
@@ -134,11 +134,11 @@ void Processor::amplify(double fLow, double fHight, double ampFactor)
     complex_vector in_ifft(m_numberOfFrames);
     vector<double> out_ifft(m_numberOfFrames);
 
-    fftw_plan p_ifft = fftw_plan_dft_c2r_1d(m_numberOfFrames, reinterpret_cast<fftw_complex*>(in_ifft.data()), out_ifft.data(), FFTW_ESTIMATE);
+    fftw_plan p_ifft = fftw_plan_dft_c2r_1d(static_cast<int>(m_numberOfFrames), reinterpret_cast<fftw_complex*>(in_ifft.data()), out_ifft.data(), FFTW_ESTIMATE);
 
-    for(unsigned int row = 0; row < m_frameHeight; row++)
-        for(unsigned int col = 0; col < m_frameWidth; col++)
-            for(unsigned int channel = 0; channel < channels; channel++)
+    for(size_t row = 0; row < m_frameHeight; row++)
+        for(size_t col = 0; col < m_frameWidth; col++)
+            for(size_t channel = 0; channel < channels; channel++)
             {
                 vector<double> tmp = receive_pixel_values(row,col,channel);
                 in_fft.assign(tmp.begin(),tmp.end());
@@ -158,15 +158,15 @@ void Processor::amplify(double fLow, double fHight, double ampFactor)
 
 void Processor::AddPulseToFrames(vector<unique_ptr<Mat> > &frames) const
 {
-    const unsigned int NofFrames = frames.size();
-    const unsigned int FrWidth {frames[0]->getCols()};
-    const unsigned int FrHeight {frames[0]->getRows()};
-    const unsigned int FrChannels {frames[0]->getChannels()};
-    const unsigned int frame_size {FrHeight*FrWidth*FrChannels};
+    const size_t NofFrames {frames.size()};
+    const size_t FrWidth {frames[0]->getCols()};
+    const size_t FrHeight {frames[0]->getRows()};
+    const size_t FrChannels {frames[0]->getChannels()};
+    const size_t frame_size {FrHeight*FrWidth*FrChannels};
     vector<double> fullFrame(frame_size);
     vector<double> pulseFrame(frame_size);
 
-    for(unsigned int frame_number = 0; frame_number < NofFrames; frame_number++)
+    for(size_t frame_number = 0; frame_number < NofFrames; frame_number++)
     {
         FramesToVector(frames[frame_number], fullFrame);
         normalize(fullFrame,255.0);
@@ -183,26 +183,26 @@ void Processor::AddPulseToFrames(vector<unique_ptr<Mat> > &frames) const
     }
 }
 
-unsigned int Processor::getFrH(void) const
+size_t Processor::getFrH(void) const
 {
     return m_frameHeight;
 }
 
-unsigned int Processor::getFrW(void) const
+size_t Processor::getFrW(void) const
 {
     return m_frameWidth;
 }
 
-unsigned int Processor::getNFr(void) const
+size_t Processor::getNFr(void) const
 {
     return m_numberOfFrames;
 }
 
-vector<double> Processor::receive_pixel_values(unsigned int row, unsigned int col, unsigned int channel) const
+vector<double> Processor::receive_pixel_values(size_t row, size_t col, size_t channel) const
 {
     vector<double> res(m_numberOfFrames);
 
-    unsigned int coor = calc_pixel_coor(0,row,col,channel);
+    size_t coor = calc_pixel_coor(0,row,col,channel);
 
     for(size_t k = 0; k < res.size(); k++)
     {
@@ -214,7 +214,7 @@ vector<double> Processor::receive_pixel_values(unsigned int row, unsigned int co
 }
 
 
-void Processor::insert_pixel_values(const vector<double>& values, unsigned int row, unsigned int col, unsigned int channel)
+void Processor::insert_pixel_values(const vector<double>& values, size_t row, size_t col, size_t channel)
 {
     if (values.size() != m_numberOfFrames)
         throw std::exception();
@@ -224,7 +224,7 @@ void Processor::insert_pixel_values(const vector<double>& values, unsigned int r
 }
 
 
-unsigned int Processor::calc_pixel_coor(unsigned int k, unsigned int row, unsigned int col, unsigned int channel) const
+size_t Processor::calc_pixel_coor(size_t k, size_t row, size_t col, size_t channel) const
 {
     auto width = m_frameWidth;
     auto height = m_frameHeight;

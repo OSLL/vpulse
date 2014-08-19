@@ -21,13 +21,13 @@ class Processor
 private:
 
     /*! Number of frames */
-    unsigned int m_numberOfFrames;
+    size_t m_numberOfFrames;
     /*! Frame height */
-    unsigned int m_frameHeight;
+    size_t m_frameHeight;
     /*! Frame width */
-    unsigned int m_frameWidth;
+    size_t m_frameWidth;
     /*! Sampling rate of the video */
-    unsigned int m_samplingRate;
+    size_t m_samplingRate;
     /*! Vector, storing the actual data */
     vector<double> m_AllFrames;
 
@@ -37,7 +37,7 @@ private:
         Takes the image number, pixel coordinates and the channel number
         \return value position in the vector
     */
-    unsigned int calc_pixel_coor(unsigned int k, unsigned int row, unsigned int col, unsigned int channel) const;
+    size_t calc_pixel_coor(size_t k, size_t row, size_t col, size_t channel) const;
 
 public:
 
@@ -47,13 +47,13 @@ public:
         Takes the lower and higher bounds of frequencies
         \return vector, containing indexes of elements with allowed frequencies
     */
-    vector<int> createFreqMask(double fLow, double fHigh) const;
+    vector<size_t> createFreqMask(double fLow, double fHigh) const;
 
     /*!
         \param sRate_in The sampling rate of the video used to record the images
         \param Frames Vector of pointers to Mat, containing images
     */
-    Processor(unsigned int sRate_in, const vector<unique_ptr<Mat> > &Frames);
+    Processor(size_t sRate_in, const vector<unique_ptr<Mat> > &Frames);
 
     /*!
         Filters the frequencies to those between the bounds and amplifies them
@@ -68,29 +68,29 @@ public:
         Takes coordinates of the pixel and the channel number
         \return vector, containing the values of the pixel channel-th value over time
     */
-    vector<double> receive_pixel_values(unsigned int row, unsigned int col, unsigned int channel) const;
+    vector<double> receive_pixel_values(size_t row, size_t col, size_t channel) const;
 
     /*!
         Insert pixel values over time into the Processor data
         Takes pixel coordinates, channel number and array of values
         \param values vector, containing values
     */
-    void insert_pixel_values(const vector<double>& values, unsigned int row, unsigned int col, unsigned int channel);
+    void insert_pixel_values(const vector<double>& values, size_t row, size_t col, size_t channel);
 
     /*!
         \return Frame height
     */
-    unsigned int getFrH() const;
+    size_t getFrH() const;
 
     /*!
         \return Frame width
     */
-    unsigned int getFrW() const;
+    size_t getFrW() const;
 
     /*!
         \return Number of frames
     */
-    unsigned int getNFr() const;
+    size_t getNFr() const;
 
     /*!
         Function for adding the pulse frames onto input frames
@@ -105,12 +105,12 @@ namespace ProcessorUtilities
 /*!
     Function converts YIQ image to RGB and normalizes values to be between 0 and 1
 */
-void YIQ2RGBnormalizeColorChannels(vector<double>& srcDst, int frWidth, int frHeight, int NofFrames);
+void YIQ2RGBnormalizeColorChannels(vector<double>& srcDst, size_t frWidth, size_t frHeight, size_t NofFrames);
 
 /*!
     Function interpolates an image of old size to the image with new size by finding the nearest propotional coordinate match
 */
-void NearInterpolation(const vector<double>& src, vector<double>& dst, int oldwidth, int oldheight, int newwidth, int newheight, int frameInd);
+void NearInterpolation(const vector<double>& src, vector<double>& dst, size_t oldwidth, size_t oldheight, size_t newwidth, size_t newheight, size_t frameInd);
 /*!
     Function extracts values vector from vector of frames
 */
@@ -127,7 +127,7 @@ void VectorToFrames(const vector<double>& src, unique_ptr<Mat>& dst);
     Function applies mask, generated in createFreqMask to src vector
     \return result vector
 */
-complex_vector applyMask(const complex_vector& src, const vector<int>& mask);
+complex_vector applyMask(const complex_vector& src, const vector<size_t> &mask);
 }
 
 #endif // PROCESSOR_H

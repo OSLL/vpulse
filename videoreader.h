@@ -18,15 +18,15 @@ private:
     /*! Vector, storing the blurred frames */
     vector<unique_ptr<Mat>> blured_frames;
     /*! Number of frames */
-    unsigned int NumberOfFrames;
+    size_t NumberOfFrames;
     /*! Frame height */
-    unsigned int frameHeight;
+    size_t frameHeight;
     /*! Frame width */
-    unsigned int frameWidth;
+    size_t frameWidth;
     /*! Blurred frame height */
-    unsigned int blurred_frameHeight;
+    size_t blurred_frameHeight;
     /*! Blurred frame width */
-    unsigned int blurred_frameWidth;
+    size_t blurred_frameWidth;
 public:
 
     /*!
@@ -39,27 +39,27 @@ public:
     /*!
         \return Frame height
     */
-    unsigned int getFrameHeight(void) const;
+    size_t getFrameHeight(void) const;
 
     /*!
         \return Frame width
     */
-    unsigned int getFrameWidth(void) const;
+    size_t getFrameWidth(void) const;
 
     /*!
         \return Blurred frame height
     */
-    unsigned int getBlurredFrameHeight(void) const;
+    size_t getBlurredFrameHeight(void) const;
 
     /*!
         \return Blurred frame width
     */
-    unsigned int getBlurredFrameWidth(void) const;
+    size_t getBlurredFrameWidth(void) const;
 
     /*!
         \return Number of frames
     */
-    unsigned int getNumberOfFrames(void) const;
+    size_t getNumberOfFrames(void) const;
 
     /*!
         \return Frames vector
