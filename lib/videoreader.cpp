@@ -2,10 +2,9 @@
 
 namespace
 {
-/*
-    Function applies Gaussian mask 5x5 to the image and halfes it in size
-*/
-void pyrDown(Mat& img)
+
+
+inline double calc_mask_value(Mat& img, size_t i, size_t j, size_t ch)
 {
     const int mask[5][5] =
     {{1, 4, 6, 4, 1},
@@ -13,26 +12,32 @@ void pyrDown(Mat& img)
      {6, 24, 36, 24, 6},
      {4, 16, 24, 16, 4},
      {1, 4, 6, 4, 1}};
-     Mat tmp(img.getRows() - 4, img.getCols() - 4);
-     for(size_t i = 2; i < img.getRows() - 2; i++)
-        for(size_t j = 2; j < img.getCols() - 2; j++)
-            for(size_t ch = 0; ch < img.getChannels(); ch++)
-            {
-                double sum = 0;
-                for(int di = -2; di <= 2; di++)
-                    for(int dj = -2; dj <= 2; dj++)
-                        sum += img.at(i+di,j+dj,ch) * mask[di+2][dj+2];
-                sum /= (double)256.0;
-                tmp.at(i-2,j-2,ch) = sum;
-            }
-    Mat res((tmp.getRows()+1)/2, (tmp.getCols()+1)/2);
-
-    for(size_t i = 0; i < tmp.getRows(); i += 2)
-        for(size_t j = 0; j < tmp.getCols(); j += 2)
-            for(size_t ch = 0; ch < tmp.getChannels(); ch++)
-                res.at(i/2,j/2,ch) = tmp.at(i,j,ch);
-    img = move(res);
+    double sum = 0;
+    for(int di = -2; di <= 2; di++)
+        for(int dj = -2; dj <= 2; dj++)
+            sum += img.at(i + di, j + dj, ch) * mask[di + 2][dj + 2];
+    sum /= 256;
+    return sum;
 }
+
+
+/*
+    Function applies Gaussian mask 5x5 to the image and halfes it in size
+*/
+Mat pyrDown(Mat& img)
+{
+    const size_t tmpRows {img.getRows() - 4};
+    const size_t tmpCols {img.getCols() - 4};
+
+    Mat res((tmpRows + 1) / 2, (tmpCols + 1) / 2);
+
+    for(size_t i = 2; i < tmpRows - 2; i += 2)
+        for(size_t j = 2; j < tmpCols - 2; j += 2)
+            for(size_t ch = 0; ch < img.getChannels(); ch++)
+                res.at(i / 2, j / 2, ch) = calc_mask_value(img, i, j, ch);
+    return res;
+}
+
 }
 
 int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, int framesLimit)
@@ -144,7 +149,7 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
 
                     unique_ptr<Mat> image_blured(new Mat(*image_mat));
                     for(int lvl=1; lvl<=pyramid_level;lvl++)
-                        pyrDown(*image_blured);
+                        *image_blured = pyrDown(*image_blured);
 
                     frames.push_back(move(image_mat));
                     blured_frames.push_back(move(image_blured)); //image_mat and image_blurred are no longer valid
@@ -171,6 +176,9 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
     avcodec_close(pCodecCtx);
      // Close the video file
     avformat_close_input(&pFormatCtx);
+
+    cout << NumberOfFrames*frameHeight*frameWidth*3 << endl;
+
     return 0;
 }
 
