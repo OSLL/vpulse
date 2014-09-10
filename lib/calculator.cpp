@@ -73,14 +73,23 @@ vector<unique_ptr<Mat>> gen_test_image(size_t length, size_t width, size_t heigh
 }
 
 
-vector<double> receive_pixel_values(vector<unique_ptr<Mat>>& src, size_t row, size_t col, size_t channel)
+vector<double> receive_pixel_values(vector<unique_ptr<Mat>>& src, size_t row, size_t col, size_t channel, size_t start, size_t end)
 {
     vector<double> res(src.size());
 
-    for(int k = 0; k < (int)res.size(); k++)
+    if (end > res.size())
+        throw out_of_range("End parameter is more than video length");
+
+    for(auto k = start; k < end; k++)
         res[k]=src[k]->getVec(row,col)[channel];
 
     return res;
+}
+
+
+vector<double> receive_pixel_values(vector<unique_ptr<Mat>>& src, size_t row, size_t col, size_t channel)
+{
+    return receive_pixel_values(src,row,col,channel,0,src.size());
 }
 
 
@@ -101,18 +110,17 @@ vector<double> receive_averaged_pixel_values(vector<unique_ptr<Mat>>& src, size_
     for(auto i = istart; i < iend; i++)
         for(auto j = jstart; j < jend; j++)
         {
-            if (i >= 0 && j >= 0)
-                if (is_in_circle(j - col, i - row, area_size))
-                {
-                    vector<double> values_array_r{receive_pixel_values(src,row,col,0)};
-                    vector<double> values_array_g{receive_pixel_values(src,row,col,1)};
-                    vector<double> values_array_b{receive_pixel_values(src,row,col,2)};
-                    vector<double> monochrome_values(values_array_b.size());
-                    for(int i = 0; i < values_array_b.size(); i++)
-                        monochrome_values[i] = sqrt((values_array_b[i]*values_array_b[i]+values_array_g[i]*values_array_g[i]+values_array_r[i]*values_array_r[i])/3);
-                    transform(res.begin(), res.end(), monochrome_values.begin(), res.begin(), plus<double>());
-                    count++;
-                }
+           if (is_in_circle(j - col, i - row, area_size))
+           {
+                vector<double> values_array_r{receive_pixel_values(src,row,col,0)};
+                vector<double> values_array_g{receive_pixel_values(src,row,col,1)};
+                vector<double> values_array_b{receive_pixel_values(src,row,col,2)};
+                vector<double> monochrome_values(values_array_b.size());
+                for(int i = 0; i < values_array_b.size(); i++)
+                    monochrome_values[i] = sqrt((values_array_b[i]*values_array_b[i]+values_array_g[i]*values_array_g[i]+values_array_r[i]*values_array_r[i])/3);
+                transform(res.begin(), res.end(), monochrome_values.begin(), res.begin(), plus<double>());
+                count++;
+           }
         }
     for(auto& x : res)
         x /= count;

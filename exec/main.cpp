@@ -8,11 +8,11 @@ using namespace Calculator;
 
 int main()
 {
-    const string filename_in {"makar12.mp4"};
+    const string filename_in {"makar.mp4"};
     av_register_all();
-    const unsigned int frames_max {1000};
+    const unsigned int frames_max {100};
     VideoReader Curr_video;
-    if (Curr_video.ReadFrames(filename_in,4,frames_max)<0)
+    if (Curr_video.ReadFrames(filename_in, 4, frames_max)<0)
     {
         cout << "Failed to read file" << endl;
         return -1;

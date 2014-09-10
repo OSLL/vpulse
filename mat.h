@@ -30,12 +30,6 @@ public:
     */
     Mat(size_t rows_in, size_t cols_in);
 
-    //! Copy constructor
-    Mat(const Mat& a);
-    //! Move constructor
-    Mat(Mat&& a);
-    //! Copy assignment
-    Mat& operator=(const Mat& a);
     //! at operator
     /*!
         Function for accessing a single value
