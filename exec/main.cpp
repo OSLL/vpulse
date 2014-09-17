@@ -10,7 +10,7 @@ int main()
 {
     const string filename_in {"makar.mp4"};
     av_register_all();
-    const unsigned int frames_max {100};
+    const unsigned int frames_max {1000};
     VideoReader Curr_video;
     if (Curr_video.ReadFrames(filename_in, 4, frames_max)<0)
     {

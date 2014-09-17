@@ -8,20 +8,20 @@ Mat::Mat(size_t rows_in, size_t cols_in):
 
 }
 
-double& Mat::at(size_t row, size_t col, size_t channel)
+unsigned char &Mat::at(size_t row, size_t col, size_t channel)
 {
     return m_data[s_channels*(m_cols*row+col)+channel];
 }
 
-double Mat::at(size_t row, size_t col, size_t channel) const
+unsigned char Mat::at(size_t row, size_t col, size_t channel) const
 {
     return m_data[s_channels*(m_cols*row+col)+channel];
 }
 
 
-Vec3d Mat::getVec(size_t row, size_t col)
+Vec3b Mat::getVec(size_t row, size_t col)
 {
-    Vec3d res;
+    Vec3b res;
     for(size_t i = 0; i < s_channels; i++)
         res[i] = m_data[s_channels*(m_cols*row+col) + i];
     return res;
@@ -44,7 +44,7 @@ size_t Mat::getChannels() const
     return s_channels;
 }
 
-std::vector<double>& Mat::data()
+std::vector<unsigned char>& Mat::data()
 {
     return m_data;
 }

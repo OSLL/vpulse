@@ -20,3 +20,5 @@ INCLUDEPATH += ..
 
 LIBS += -L$$(FFTW_PATH) -llibfftw3-3
 LIBS += -L$$(FFMPEG_LIB_PATH) -lavcodec -lavformat -lswscale -lavutil
+
+QMAKE_CXXFLAGS_RELEASE += -O2

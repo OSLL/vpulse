@@ -6,7 +6,7 @@ namespace
 
 inline double calc_mask_value(Mat& img, size_t i, size_t j, size_t ch)
 {
-    const int mask[5][5] =
+    const short int mask[5][5] =
     {{1, 4, 6, 4, 1},
      {4, 16, 24, 16, 4},
      {6, 24, 36, 24, 6},
@@ -15,7 +15,7 @@ inline double calc_mask_value(Mat& img, size_t i, size_t j, size_t ch)
     double sum = 0;
     for(int di = -2; di <= 2; di++)
         for(int dj = -2; dj <= 2; dj++)
-            sum += img.at(i + di, j + dj, ch) * mask[di + 2][dj + 2];
+            sum += static_cast<double>(img.at(i + di, j + dj, ch)) * mask[di + 2][dj + 2];
     sum /= 256;
     return sum;
 }
@@ -34,7 +34,7 @@ Mat pyrDown(Mat& img)
     for(size_t i = 2; i < tmpRows - 2; i += 2)
         for(size_t j = 2; j < tmpCols - 2; j += 2)
             for(size_t ch = 0; ch < img.getChannels(); ch++)
-                res.at(i / 2, j / 2, ch) = calc_mask_value(img, i, j, ch);
+                res.at(i / 2, j / 2, ch) = static_cast<unsigned char>(floor(calc_mask_value(img, i, j, ch)));
     return res;
 }
 
@@ -43,8 +43,6 @@ Mat pyrDown(Mat& img)
 int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, int framesLimit)
 {
     AVFormatContext *pFormatCtx = nullptr;
-
-    cout << videofilename_in << endl;
 
     if(avformat_open_input(&pFormatCtx, videofilename_in.c_str(), nullptr, nullptr)!=0)
     {
@@ -88,7 +86,7 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
     pCodec=avcodec_find_decoder(pCodecCtx->codec_id);
     if(pCodec==nullptr)
     {
-      cout << "Unsupported codec!\n" << endl;
+//      cout << "Unsupported codec!\n" << endl;
       return -1; // Codec not found
     }
      // Open codec
@@ -176,8 +174,6 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
     avcodec_close(pCodecCtx);
      // Close the video file
     avformat_close_input(&pFormatCtx);
-
-    cout << NumberOfFrames*frameHeight*frameWidth*3 << endl;
 
     return 0;
 }
