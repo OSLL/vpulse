@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['vec3d',['Vec3d',['../_mat_8h.html#a4f615077519f7327a9f5fd18ffbf3451',1,'Mat.h']]]
+  ['vec3b',['Vec3b',['../mat_8h.html#a8cf52cb487b606f95870a49be7503b92',1,'mat.h']]],
+  ['vec3d',['Vec3d',['../mat_8h.html#a61a8a882a2f2654d9f5f3f5122bf50ca',1,'mat.h']]]
 ];

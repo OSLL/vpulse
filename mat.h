@@ -39,6 +39,13 @@ public:
     */
     unsigned char &at(size_t row, size_t col, size_t channel);
 
+
+    //! at operator
+    /*!
+        Function for accessing a single value
+        Takes pixel coordinates and the channel number
+        \return value
+    */
     unsigned char at(size_t row, size_t col, size_t channel) const;
     /*!
         Function for accessing the full pixel value

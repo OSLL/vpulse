@@ -1,8 +1,7 @@
 var searchData=
 [
-  ['main',['main',['../main_8cpp.html#ae66f6b31b5ad750f1fe042a706a4e3d4',1,'main.cpp']]],
-  ['main_2ecpp',['main.cpp',['../main_8cpp.html',1,'']]],
-  ['mat',['Mat',['../class_mat.html',1,'Mat'],['../class_mat.html#ad22e606da03aea9cf53f6ed3a856a306',1,'Mat::Mat(unsigned int rows_in, unsigned int cols_in)'],['../class_mat.html#ac62c94ef4f6051cb280c8ae2c488c4c1',1,'Mat::Mat(const Mat &amp;a)'],['../class_mat.html#a831f2b3cb9e5e207efac776e35a65944',1,'Mat::Mat(Mat &amp;&amp;a)']]],
-  ['mat_2ecpp',['Mat.cpp',['../_mat_8cpp.html',1,'']]],
-  ['mat_2eh',['Mat.h',['../_mat_8h.html',1,'']]]
+  ['mat',['Mat',['../class_mat.html',1,'Mat'],['../class_mat.html#a1e37fc2459754426e8126226630411c6',1,'Mat::Mat()']]],
+  ['mat_2eh',['mat.h',['../mat_8h.html',1,'']]],
+  ['mattovector',['MatToVector',['../namespace_processor_utilities.html#a8c9153d6b08d92c3c452cc8efb0de667',1,'ProcessorUtilities']]],
+  ['matvectortovector',['MatVectorToVector',['../namespace_processor_utilities.html#ac28a27cc9a1032544668a76a063927fd',1,'ProcessorUtilities']]]
 ];
