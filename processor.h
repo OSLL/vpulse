@@ -112,17 +112,17 @@ void YIQ2RGBnormalizeColorChannels(vector<double>& srcDst, size_t frWidth, size_
 */
 void NearInterpolation(const vector<double>& src, vector<double>& dst, size_t oldwidth, size_t oldheight, size_t newwidth, size_t newheight, size_t frameInd);
 /*!
-    Function extracts values vector from vector of frames
+    Function extracts values vector from vector of unique_ptr to Mat
 */
-void FramesToVector(const vector<unique_ptr<Mat> > &src, vector<double>& dst);
+void MatVectorToVector(const vector<unique_ptr<Mat> > &src, vector<double>& dst);
 /*!
-    Function extracts values vector from a frame
+    Function extracts values vector from a Mat
 */
-void FramesToVector(const unique_ptr<Mat>& src, vector<double>& dst);
+void MatToVector(Mat& src, vector<double>& dst);
 /*!
-    Function converts values vector to a frame
+    Function converts values vector to a Mat
 */
-void VectorToFrames(const vector<double>& src, unique_ptr<Mat>& dst);
+void VectorToMat(const vector<double>& src, Mat& dst);
 /*!
     Function applies mask, generated in createFreqMask to src vector
     \return result vector

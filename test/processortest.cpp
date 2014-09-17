@@ -5,6 +5,5 @@
 
 TEST(ProcessorTest, TestOne) {
 
-
 }
 

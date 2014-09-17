@@ -49,7 +49,7 @@ vector<double> gen_sin_vector(size_t length, double ampl, double period)
 }
 
 
-vector<unique_ptr<Mat>> gen_test_image(size_t length, size_t width, size_t height, double ampl, double period)
+/*vector<unique_ptr<Mat>> gen_test_image(size_t length, size_t width, size_t height, double ampl, double period)
 {
     vector<unique_ptr<Mat>> res(length);
 
@@ -70,7 +70,7 @@ vector<unique_ptr<Mat>> gen_test_image(size_t length, size_t width, size_t heigh
         }
 
     return res;
-}
+}*/
 
 
 vector<double> receive_pixel_values(vector<unique_ptr<Mat>>& src, size_t row, size_t col, size_t channel, size_t start, size_t end)
@@ -149,9 +149,9 @@ double calculate_pulse(VideoReader& video, vector<Point>& points, double fr1, do
     vector<double> periods(harmonic_stats.size());
     transform(harmonic_stats.begin(),harmonic_stats.end(),periods.begin(),[](harmonic_stat a){return a.second;}); //extract periods
 
-    for(auto x : periods)
+    /*for(auto x : periods)
         cout << x << " ";
-    cout << endl;
+    cout << endl;*/
 
     double pulse = calc_average_significant_period(periods,avg_parameter)/sRate*60;
 

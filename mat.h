@@ -7,6 +7,7 @@
 const size_t s_channels = 3;
 
 using Vec3d = std::array<double, s_channels>;
+using Vec3b = std::array<unsigned char, s_channels>;
 
 /*!
   Mat class is used to store a single image.
@@ -20,7 +21,7 @@ private:
     size_t m_cols;
     /*! Channels number */
     /*! Vector, storing the actual data */
-    std::vector<double> m_data;
+    std::vector<unsigned char> m_data;
 
 public:
 
@@ -36,15 +37,15 @@ public:
         Takes pixel coordinates and the channel number
         \return Value by reference, so it can be edited
     */
-    double &at(size_t row, size_t col, size_t channel);
+    unsigned char &at(size_t row, size_t col, size_t channel);
 
-    double at(size_t row, size_t col, size_t channel) const;
+    unsigned char at(size_t row, size_t col, size_t channel) const;
     /*!
         Function for accessing the full pixel value
         Takes pixel coordinates
         \return array of 3, containing pixel values across 3 channels
     */
-    Vec3d getVec(size_t row, size_t col);
+    Vec3b getVec(size_t row, size_t col);
 
     /*!
         \return Number of rows
@@ -61,7 +62,7 @@ public:
     /*!
         \return Vector, containing image data by reference
     */
-    std::vector<double>& data();
+    std::vector<unsigned char> &data();
 
     /*!
         \return Size of the image

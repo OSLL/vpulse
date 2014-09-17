@@ -7,23 +7,33 @@ using namespace std;
 namespace ProcessorUtilities
 {
 
-void FramesToVector(const vector<unique_ptr<Mat>>& src, vector<double>& dst)
+inline double UcharToDouble(unsigned char a)
 {
-    const size_t image_size {src[0]->size()};
+    return static_cast<double>(a);
+}
+
+inline unsigned char DoubleToUchar(double a)
+{
+    return static_cast<unsigned char>(a);
+}
+
+
+void MatVectorToVector(const vector<unique_ptr<Mat>>& src, vector<double>& dst)
+{
+    const size_t image_size = src[0]->size();
     for(size_t i = 0; i < src.size(); i++)
-        copy(src[i]->data().begin(), src[i]->data().end(), dst.begin()+ i*image_size);
-
+        transform(src[i]->data().begin(), src[i]->data().end(), dst.begin()+ i*image_size, UcharToDouble);
 }
 
-void FramesToVector(const unique_ptr<Mat>& src, vector<double>& dst)
+void MatToVector(Mat& src, vector<double>& dst)
 {
-    dst = src->data();
+    transform(src.data().begin(), src.data().end(), dst.begin(), UcharToDouble);
 }
 
 
-void VectorToFrames(const vector<double>& src, unique_ptr<Mat>& dst)
+void VectorToMat(const vector<double>& src, Mat& dst)
 {
-    dst->data() = src;
+    transform(src.begin(), src.end(), dst.data().begin(), DoubleToUchar);
 }
 
 void normalize(vector<double>& src, double factor)
@@ -101,7 +111,7 @@ Processor::Processor(size_t sRate_in, const vector<unique_ptr<Mat> > &Frames):
     m_samplingRate(sRate_in),
     m_AllFrames(m_numberOfFrames*m_frameHeight*m_frameWidth*channels)
 {
-    FramesToVector(Frames, m_AllFrames);
+    MatVectorToVector(Frames, m_AllFrames);
 }
 
 vector<size_t> Processor::createFreqMask(double fLow, double fHigh) const
@@ -168,7 +178,7 @@ void Processor::AddPulseToFrames(vector<unique_ptr<Mat> > &frames) const
 
     for(size_t frame_number = 0; frame_number < NofFrames; frame_number++)
     {
-        FramesToVector(frames[frame_number], fullFrame);
+        MatToVector(*frames[frame_number], fullFrame);
         normalize(fullFrame,255.0);
         rgb2yiq(fullFrame, FrHeight, FrWidth, 1, false);
         NearInterpolation(m_AllFrames,pulseFrame,m_frameWidth,m_frameHeight,FrWidth,FrHeight,
@@ -179,7 +189,7 @@ void Processor::AddPulseToFrames(vector<unique_ptr<Mat> > &frames) const
         std::transform(fullFrame.begin(),fullFrame.end(),fullFrame.begin(),
                        [](double a){if (a > 1) return 1.0; if (a < 0) return 0.0; return a;});
         normalize(fullFrame,1.0/255);
-        VectorToFrames(fullFrame, frames[frame_number]);
+        VectorToMat(fullFrame, *frames[frame_number]);
     }
 }
 
@@ -224,7 +234,7 @@ void Processor::insert_pixel_values(const vector<double>& values, size_t row, si
 }
 
 
-size_t Processor::calc_pixel_coor(size_t k, size_t row, size_t col, size_t channel) const
+inline size_t Processor::calc_pixel_coor(size_t k, size_t row, size_t col, size_t channel) const
 {
     auto width = m_frameWidth;
     auto height = m_frameHeight;
