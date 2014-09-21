@@ -1,17 +1,16 @@
 TARGET = Vpulse
 TEMPLATE = subdirs
-release{
-SUBDIRS = lib exec
+
+CONFIG( release, debug|release ) {
+SUBDIRS = lib exec test
 }
-#debug{
-#SUBDIRS = lib exec test
-#}
+CONFIG( debug, debug|release ) {
+SUBDIRS = lib exec test unittest
+}
 lib.file = lib/lib.pro
 exec.file = exec/exec.pro
-
-#debug{
-#test.file = test/test.pro
-#}
+test.file = test/test.pro
+unittest.file = unittest/unittest.pro
 
 CONFIG += ordered
 

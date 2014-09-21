@@ -2,7 +2,7 @@ var searchData=
 [
   ['calc_5famplitude_5fand_5fperiod',['calc_amplitude_and_period',['../namespace_calculator.html#a7d624b651b2e657ca3e222d740ea523e',1,'Calculator']]],
   ['calc_5faverage_5fsignificant_5fperiod',['calc_average_significant_period',['../namespace_calculator.html#acd78f7b493ccf133269bd692742cc7f7',1,'Calculator']]],
-  ['calculate_5fpulse',['calculate_pulse',['../namespace_calculator.html#ad89bc2634fd43bb22f48c05dd5b7c782',1,'Calculator']]],
+  ['calculate_5fpulse',['calculate_pulse',['../namespace_calculator.html#a1ccada7750b3054633d888c44778ee4a',1,'Calculator']]],
   ['calculator',['Calculator',['../namespace_calculator.html',1,'']]],
   ['calculator_2eh',['calculator.h',['../calculator_8h.html',1,'']]],
   ['channels',['channels',['../processor_8h.html#ac7972ea7ef4795b69f79f47a96a5e107',1,'processor.h']]],

@@ -32,7 +32,7 @@ double calc_average_significant_period(vector<double> periods, size_t k);
     \param ampl amplitude of oscillation
     \param period period of oscillation
 */
-std::vector<double> gen_sin_vector(size_t length, double ampl, double period);
+vector<double> gen_sin_vector(size_t length, double ampl, double period);
 
 
 /*!
@@ -43,32 +43,43 @@ std::vector<double> gen_sin_vector(size_t length, double ampl, double period);
     \param ampl amplitude of oscillation
     \param period period of oscillation
 */
-std::vector<std::unique_ptr<Mat>> gen_test_image(size_t length, size_t width, size_t height, double ampl, double period);
+vector<unique_ptr<Mat>> gen_test_image(size_t length, size_t width, size_t height, double ampl, double period);
 
 /*!
     Function obtains an array of pixel values from the images vector
 */
-std::vector<double> receive_pixel_values(vector<unique_ptr<Mat>>& src, size_t row, size_t col, size_t channel);
+vector<double> receive_pixel_values(vector<unique_ptr<Mat>>& src, size_t row, size_t col, size_t channel);
 
 /*!
-    Function obtains an array of pixel values from the images vector
+    Function obtains an array of pixel values from the images vector in specified range [start;end)
+    \param start Starting position
+    \param end Ending position
 */
-std::vector<double> receive_averaged_pixel_values(std::vector<std::unique_ptr<Mat>>& src, size_t row, size_t col, double area_size);
+vector<double> receive_pixel_values(vector<unique_ptr<Mat>>& src, size_t row, size_t col, size_t channel, size_t start, size_t end);
+
+/*!
+    Function obtains an array of pixel values from the images vector in specified range [start;end)
+    \param start Starting position
+    \param end Ending position
+*/
+vector<double> receive_averaged_pixel_values(vector<unique_ptr<Mat>>& src, size_t row, size_t col, double area_size, size_t start, size_t end);
+
 
 /*!
     Function calculates pulse from video according to points, specified by the parameter
-    \param fr1
-    \param fr2
-    \param ampFactors
+    \param fr1 lower frequency threshold
+    \param fr2 upper frequency threshold
+    \param ampFactor amplifying factor
     \param avg_parameter
     \param area_radius
+    \return A vector of real number, one for each period of time with length equal to upd_freq parameter
 */
-double calculate_pulse(VideoReader& video, vector<Point>& points, double fr1, double fr2, double ampFactor, size_t avg_parameter, double area_radius);
+vector<double> calculate_pulse(VideoReader& video, vector<Point>& points, double upd_freq, double fr1, double fr2, double ampFactor, size_t avg_parameter, double area_radius);
 
 /*!
     Function generates standart points for image with specified width and height.
 */
-std::vector<Point> standart_points(size_t width, size_t height);
+vector<Point> standart_points(size_t width, size_t height);
 
 /*!
     Function finds points of interest in the video for potential pulse recognition

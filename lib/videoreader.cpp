@@ -150,7 +150,7 @@ int VideoReader::ReadFrames(const string& videofilename_in, int pyramid_level, i
                         *image_blured = pyrDown(*image_blured);
 
                     frames.push_back(move(image_mat));
-                    blured_frames.push_back(move(image_blured)); //image_mat and image_blurred are no longer valid
+                    blured_frames.push_back(move(image_blured)); //image_mat and image_blurred pointers are no longer valid
                 }
             }
         }

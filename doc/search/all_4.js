@@ -1,7 +1,7 @@
 var searchData=
 [
-  ['gen_5fsin_5fvector',['gen_sin_vector',['../namespace_calculator.html#a0fbcce9394bd763b4e8fd8cda42046b4',1,'Calculator']]],
-  ['gen_5ftest_5fimage',['gen_test_image',['../namespace_calculator.html#a2ec2c2d872c843f3dd71568c4ae0df3b',1,'Calculator']]],
+  ['gen_5fsin_5fvector',['gen_sin_vector',['../namespace_calculator.html#a831a7be683ceb7192bddd7dd10912103',1,'Calculator']]],
+  ['gen_5ftest_5fimage',['gen_test_image',['../namespace_calculator.html#a681a3bfdb0f83164c7c0187919dff648',1,'Calculator']]],
   ['getbluredframes',['getBluredFrames',['../class_video_reader.html#a497c8c5dac490bfd0e7761cbbff01b3d',1,'VideoReader']]],
   ['getblurredframeheight',['getBlurredFrameHeight',['../class_video_reader.html#ac65768d46d83400817f2b14be5e75efe',1,'VideoReader']]],
   ['getblurredframewidth',['getBlurredFrameWidth',['../class_video_reader.html#ae6294c2c4bad4dcfc30d87a311e0fe6d',1,'VideoReader']]],

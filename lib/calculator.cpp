@@ -99,10 +99,10 @@ inline bool is_in_circle(size_t x, size_t y, double area_size)
 }
 
 
-vector<double> receive_averaged_pixel_values(vector<unique_ptr<Mat>>& src, size_t row, size_t col, double area_size)
+vector<double> receive_averaged_pixel_values(vector<unique_ptr<Mat>>& src, size_t row, size_t col, double area_size, size_t start, size_t end)
 {
     int count = 0;
-    vector<double> res(src.size());
+    vector<double> res(end-start);
     auto istart = (row > static_cast<size_t>(area_size)) ? (row - static_cast<size_t>(area_size)) : 0;
     auto iend = row + static_cast<size_t>(area_size);
     auto jstart = (col > static_cast<size_t>(area_size)) ? (col - static_cast<size_t>(area_size)) : 0;
@@ -112,9 +112,9 @@ vector<double> receive_averaged_pixel_values(vector<unique_ptr<Mat>>& src, size_
         {
            if (is_in_circle(j - col, i - row, area_size))
            {
-                vector<double> values_array_r{receive_pixel_values(src,row,col,0)};
-                vector<double> values_array_g{receive_pixel_values(src,row,col,1)};
-                vector<double> values_array_b{receive_pixel_values(src,row,col,2)};
+                vector<double> values_array_r{receive_pixel_values(src,row,col,0,start,end)};
+                vector<double> values_array_g{receive_pixel_values(src,row,col,1,start,end)};
+                vector<double> values_array_b{receive_pixel_values(src,row,col,2,start,end)};
                 vector<double> monochrome_values(values_array_b.size());
                 for(int i = 0; i < values_array_b.size(); i++)
                     monochrome_values[i] = sqrt((values_array_b[i]*values_array_b[i]+values_array_g[i]*values_array_g[i]+values_array_r[i]*values_array_r[i])/3);
@@ -130,7 +130,7 @@ vector<double> receive_averaged_pixel_values(vector<unique_ptr<Mat>>& src, size_
 
 
 
-double calculate_pulse(VideoReader& video, vector<Point>& points, double fr1, double fr2, double ampFactor, size_t avg_parameter, double area_radius)
+vector<double> calculate_pulse(VideoReader& video, vector<Point>& points, double upd_freq, double fr1, double fr2, double ampFactor, size_t avg_parameter, double area_radius)
 {
     const int sRate {30};
     Processor pr1(sRate, video.getBluredFrames());
@@ -138,24 +138,25 @@ double calculate_pulse(VideoReader& video, vector<Point>& points, double fr1, do
     pr1.amplify(fr1,fr2,ampFactor);
     pr1.AddPulseToFrames(video.getFrames());
 
-    vector<harmonic_stat> harmonic_stats;
 
-    for(auto p : points)
+    const size_t upd_frame_freq = static_cast<size_t>(ceil(upd_freq*sRate));
+    vector<double> pulses;
+    for(size_t i = 0; i < video.getNumberOfFrames() - upd_frame_freq; i += upd_frame_freq)
     {
-        vector<double> values {receive_averaged_pixel_values(video.getFrames(),p.second,p.first,area_radius)};
-        harmonic_stats.push_back(calc_amplitude_and_period(values));
+        vector<harmonic_stat> harmonic_stats;
+        for(auto p : points)
+        {
+            vector<double> values {receive_averaged_pixel_values(video.getFrames(),p.second,p.first,area_radius,i,i + upd_frame_freq)};
+            harmonic_stats.push_back(calc_amplitude_and_period(values));
+        }
+
+        vector<double> periods(harmonic_stats.size());
+        transform(harmonic_stats.begin(),harmonic_stats.end(),periods.begin(),[](harmonic_stat a){return a.second;}); //extract periods
+
+        double pulse = calc_average_significant_period(periods,avg_parameter)/sRate*60;
+        pulses.push_back(pulse);
     }
-
-    vector<double> periods(harmonic_stats.size());
-    transform(harmonic_stats.begin(),harmonic_stats.end(),periods.begin(),[](harmonic_stat a){return a.second;}); //extract periods
-
-    /*for(auto x : periods)
-        cout << x << " ";
-    cout << endl;*/
-
-    double pulse = calc_average_significant_period(periods,avg_parameter)/sRate*60;
-
-    return pulse;
+    return pulses;
 }
 
 
