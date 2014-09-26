@@ -34,7 +34,10 @@ private:
 
     /*!
         Function for calculating pixel coordinate in m_AllFrames
-        Takes the image number, pixel coordinates and the channel number
+        \param k number of image
+        \param row row
+        \param col column
+        \param channel channel
         \return value position in the vector
     */
     size_t calc_pixel_coor(size_t k, size_t row, size_t col, size_t channel) const;
@@ -45,6 +48,8 @@ public:
         Function for creating the mask of elements with frequencies between fLow and fHigh
         Mask can be used against DFT array of the same length as number of images in current object
         Takes the lower and higher bounds of frequencies
+        \param fLow lower frequency filter
+        \param fHigh higher frequency filter
         \return vector, containing indexes of elements with allowed frequencies
     */
     vector<size_t> createFreqMask(double fLow, double fHigh) const;

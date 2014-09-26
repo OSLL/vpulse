@@ -22,6 +22,6 @@ extern "C"
 #include <iostream>
 #include <vector>
 
-using complex_number = std::complex<double>;
-using complex_vector = std::vector<std::complex<double>>;
+using complex_number = std::complex<double>;                             //data type for a complex number
+using complex_vector = std::vector<std::complex<double>>;                //alias for complex vector
 #endif // CONF_H
